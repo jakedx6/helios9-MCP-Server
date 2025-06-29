@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)",
+      "Bash(npm run clean:*)",
+      "Bash(tsc:*)",
+      "Bash(npx tsc:*)"
+    ],
+    "deny": []
+  },
+  "enabledMcpjsonServers": [
+    "github",
+    "context7",
+    "serena",
+    "supabase-mcp-server"
+  ]
+}
