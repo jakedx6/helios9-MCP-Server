@@ -281,19 +281,19 @@ export class ApiClient {
     if (sort?.order) params.append('sort_order', sort.order)
 
     const queryString = params.toString()
-    const endpoint = `/api/projects${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/api/mcp/projects${queryString ? `?${queryString}` : ''}`
     
     const response = await this.request<{ projects: Project[] }>(endpoint)
     return response.projects
   }
 
   async getProject(projectId: string): Promise<Project> {
-    const response = await this.request<{ project: Project }>(`/api/projects/${projectId}`)
+    const response = await this.request<{ project: Project }>(`/api/mcp/projects/${projectId}`)
     return response.project
   }
 
   async createProject(projectData: ProjectInsert): Promise<Project> {
-    const response = await this.request<{ project: Project }>('/api/projects', {
+    const response = await this.request<{ project: Project }>('/api/mcp/projects', {
       method: 'POST',
       body: JSON.stringify(projectData),
     })
@@ -303,7 +303,7 @@ export class ApiClient {
   }
 
   async updateProject(projectId: string, updates: Partial<Project>): Promise<Project> {
-    const response = await this.request<{ project: Project }>(`/api/projects/${projectId}`, {
+    const response = await this.request<{ project: Project }>(`/api/mcp/projects/${projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     })
@@ -327,19 +327,19 @@ export class ApiClient {
     if (sort?.order) params.append('sort_order', sort.order)
 
     const queryString = params.toString()
-    const endpoint = `/api/tasks${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/api/mcp/tasks${queryString ? `?${queryString}` : ''}`
     
     const response = await this.request<{ tasks: Task[] }>(endpoint)
     return response.tasks
   }
 
   async getTask(taskId: string): Promise<Task> {
-    const response = await this.request<{ task: Task }>(`/api/tasks/${taskId}`)
+    const response = await this.request<{ task: Task }>(`/api/mcp/tasks/${taskId}`)
     return response.task
   }
 
   async createTask(taskData: TaskInsert): Promise<Task> {
-    const response = await this.request<{ task: Task }>('/api/tasks', {
+    const response = await this.request<{ task: Task }>('/api/mcp/tasks', {
       method: 'POST',
       body: JSON.stringify(taskData),
     })
@@ -348,7 +348,7 @@ export class ApiClient {
   }
 
   async updateTask(taskId: string, updates: Partial<Task>): Promise<Task> {
-    const response = await this.request<{ task: Task }>(`/api/tasks/${taskId}`, {
+    const response = await this.request<{ task: Task }>(`/api/mcp/tasks/${taskId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     })
@@ -371,19 +371,19 @@ export class ApiClient {
     if (sort?.order) params.append('sort_order', sort.order)
 
     const queryString = params.toString()
-    const endpoint = `/api/documents${queryString ? `?${queryString}` : ''}`
+    const endpoint = `/api/mcp/documents${queryString ? `?${queryString}` : ''}`
     
     const response = await this.request<{ documents: Document[] }>(endpoint)
     return response.documents
   }
 
   async getDocument(documentId: string): Promise<Document> {
-    const response = await this.request<{ document: Document }>(`/api/documents/${documentId}`)
+    const response = await this.request<{ document: Document }>(`/api/mcp/documents/${documentId}`)
     return response.document
   }
 
   async createDocument(documentData: DocumentInsert): Promise<Document> {
-    const response = await this.request<{ document: Document }>('/api/documents', {
+    const response = await this.request<{ document: Document }>('/api/mcp/documents', {
       method: 'POST',
       body: JSON.stringify(documentData),
     })
@@ -392,7 +392,7 @@ export class ApiClient {
   }
 
   async updateDocument(documentId: string, updates: Partial<Document>): Promise<Document> {
-    const response = await this.request<{ document: Document }>(`/api/documents/${documentId}`, {
+    const response = await this.request<{ document: Document }>(`/api/mcp/documents/${documentId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     })
@@ -404,7 +404,7 @@ export class ApiClient {
    * Get comprehensive project context for AI agents
    */
   async getProjectContext(projectId: string): Promise<ProjectContext> {
-    const response = await this.request<{ context: ProjectContext }>(`/api/projects/${projectId}/context`)
+    const response = await this.request<{ context: ProjectContext }>(`/api/mcp/projects/${projectId}/context`)
     return response.context
   }
 
@@ -412,7 +412,7 @@ export class ApiClient {
    * Get task board for Kanban view
    */
   async getTaskBoard(projectId: string): Promise<TaskBoard> {
-    const response = await this.request<{ board: TaskBoard }>(`/api/projects/${projectId}/board`)
+    const response = await this.request<{ board: TaskBoard }>(`/api/mcp/projects/${projectId}/board`)
     return response.board
   }
 
@@ -420,7 +420,7 @@ export class ApiClient {
    * Additional methods for MCP compatibility
    */
   async updateTasksByProject(projectId: string, updates: Partial<Task>): Promise<void> {
-    await this.request(`/api/projects/${projectId}/tasks`, {
+    await this.request(`/api/mcp/projects/${projectId}/tasks`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     })

@@ -6,7 +6,8 @@
       "Bash(grep:*)",
       "Bash(npm run clean:*)",
       "Bash(tsc:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   },

@@ -106,15 +106,11 @@ export const getProject = requireAuth(async (args: any) => {
   
   logger.info('Getting project details', { project_id })
   
-  // Get comprehensive project context
-  const context = await supabaseService.getProjectContext(project_id)
+  // Get basic project details (this calls /api/mcp/projects/${projectId})
+  const project = await supabaseService.getProject(project_id)
   
   return {
-    project: context.project,
-    statistics: context.statistics,
-    recent_documents: context.recent_documents,
-    recent_tasks: context.recent_tasks,
-    team_members: context.team_members
+    project
   }
 })
 
