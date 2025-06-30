@@ -2,6 +2,13 @@
 
 An AI-native Model Context Protocol (MCP) server that provides comprehensive project management context to AI agents. Built for seamless integration with Claude, OpenAI, and other AI systems via the **Helios-9 API**.
 
+## 📌 Current Status
+
+**Version**: 1.0.0  
+**Stability**: Ready for Core Features  
+**Active Tools**: 12 (Projects, Tasks, Documents CRUD operations)  
+**API Integration**: ✅ Fully integrated with Helios-9 SaaS API
+
 ## 🌟 Features
 
 ### Core Capabilities
@@ -12,15 +19,15 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 - **Real-time Context**: Live project statistics and activity feeds
 
 ### MCP Protocol Support
-- **Tools**: 15+ tools for project, task, and document operations
-- **Resources**: Dynamic project and document resources
-- **Prompts**: AI-optimized prompt templates for workflows
+- **Tools**: 12 core tools for project, task, and document operations
+- **Resources**: Dynamic project and document resources (coming soon)
+- **Prompts**: AI-optimized prompt templates (coming soon)
 
 ### AI-First Design
 - **Frontmatter Support**: YAML metadata for AI instructions
 - **Link Analysis**: Internal document linking with `[[document-name]]` syntax
-- **Context Aggregation**: Comprehensive project overviews for AI agents
-- **Validation**: AI readiness scoring and recommendations
+- **Basic Search**: Keyword search across projects, tasks, and documents
+- **Semantic Search**: Coming soon with Supabase pgvector integration
 
 ## 🚀 Quick Start
 
@@ -56,7 +63,7 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 
 ```bash
 # Required - Helios-9 API Configuration
-HELIOS_API_URL=https://your-helios9-app.com
+HELIOS_API_URL=https://helios9.app
 HELIOS_API_KEY=your_generated_api_key
 
 # Optional
@@ -85,55 +92,39 @@ Your API key controls access to:
 
 ## 📋 Available Tools
 
-### Project Tools
+### ✅ Project Tools
 - `list_projects` - List all projects with filtering
 - `get_project` - Get detailed project information
 - `create_project` - Create new project
-- `update_project` - Update existing project  
-- `get_project_context` - Get comprehensive AI context
+- `update_project` - Update existing project
 
-### Task Tools
+### ✅ Task Tools
 - `list_tasks` - List tasks with filtering
+- `get_task` - Get specific task details
 - `create_task` - Create new task
 - `update_task` - Update task status/details
-- `get_task_context` - Get task with related docs
-- `get_task_board` - Get Kanban board view
 
-### Document Tools
+### ✅ Document Tools
 - `list_documents` - List documents with filtering
-- `create_document` - Create markdown document
+- `get_document` - Get specific document
+- `create_document` - Create markdown document (requires project_id)
 - `update_document` - Update document content
-- `search_documents` - Advanced document search
-- `get_document_context` - Get document with links/metadata
 
-## 🔗 Available Resources
+**Note**: All tools require proper API key authentication and respect user-level data isolation.
 
-### Dynamic Resources
-- `helios9://projects` - All user projects
-- `helios9://documents` - All user documents
-- `helios9://project/{id}/context` - Project overview
-- `helios9://project/{id}/board` - Task board
-- `helios9://document/{id}` - Document content
+### 🚧 Coming Soon
+- Semantic search across all content
+- Task dependencies and workflows
+- AI conversation tracking
+- Advanced analytics and insights
+- Document collaboration features
 
-## 🎯 AI Prompts
+## 🔗 Resources & Prompts (Coming Soon)
 
-### Built-in Prompts
-- `project_kickoff` - Generate project plan from description
-- `daily_standup` - Create standup report from activity
-- `document_review` - Comprehensive document analysis
-
-### Example Usage
-```javascript
-// Project kickoff
-{
-  "name": "project_kickoff",
-  "arguments": {
-    "description": "Build a React dashboard for analytics",
-    "team_size": 3,
-    "duration": "2 months"
-  }
-}
-```
+MCP Resources and Prompts are planned features that will enable:
+- Dynamic resource URIs for direct content access
+- AI-optimized prompt templates for common workflows
+- Context-aware project planning assistance
 
 ## 🔧 Integration Examples
 
@@ -148,7 +139,7 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/helios9-MCP-Server/dist/index.js"],
       "env": {
-        "HELIOS_API_URL": "https://helios9.com",
+        "HELIOS_API_URL": "https://helios9.app",
         "HELIOS_API_KEY": "your_generated_api_key"
       }
     }
@@ -165,7 +156,7 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/helios9-MCP-Server/dist/index.js"],
       "env": {
-        "HELIOS_API_URL": "https://your-helios9-app.com", 
+        "HELIOS_API_URL": "https://helios9.app", 
         "HELIOS_API_KEY": "your_generated_api_key"
       }
     }
@@ -180,7 +171,7 @@ from mcp import MCPClient
 import os
 
 # Set environment variables
-os.environ["HELIOS_API_URL"] = "https://your-helios9-app.com"
+os.environ["HELIOS_API_URL"] = "https://helios9.app"
 os.environ["HELIOS_API_KEY"] = "your_generated_api_key"
 
 client = MCPClient()
@@ -235,8 +226,8 @@ interface Document {
   id: string
   title: string
   content: string  // Markdown with frontmatter
-  document_type: 'requirement' | 'design' | 'technical' | 'meeting_notes' | 'other'
-  project_id?: string
+  document_type: 'requirement' | 'design' | 'technical' | 'meeting_notes' | 'note' | 'other'
+  project_id: string  // Required
   created_at: string
   updated_at: string
   created_by: string
@@ -269,21 +260,6 @@ npm run build      # Production build
 npm run start      # Start production server
 ```
 
-### Testing with Helios-9 API
-```bash
-# Test connection
-HELIOS_API_URL=http://localhost:3000 HELIOS_API_KEY=your_dev_key npm start
-
-# Test tool calls
-echo '{"method": "tools/list", "params": {}}' | HELIOS_API_URL=http://localhost:3000 HELIOS_API_KEY=your_dev_key node dist/index.js
-```
-
-### Debugging
-Set `LOG_LEVEL=debug` for verbose logging:
-```bash
-LOG_LEVEL=debug HELIOS_API_URL=your_url HELIOS_API_KEY=your_key npm start
-```
-
 ## 🏗️ Architecture
 
 ### API-First Design
@@ -300,7 +276,6 @@ LOG_LEVEL=debug HELIOS_API_URL=your_url HELIOS_API_KEY=your_key npm start
                                                          │
                                                 ┌────────▼────────┐
                                                 │    Database     │
-                                                │   (Supabase)    │
                                                 └─────────────────┘
 ```
 
@@ -333,13 +308,13 @@ The server provides health information through logging:
 **Authentication Failed**
 ```bash
 # Check API key validity
-curl -H "Authorization: Bearer YOUR_API_KEY" https://your-helios9-app.com/api/auth/validate
+curl -H "Authorization: Bearer YOUR_API_KEY" https://helios9.app/api/auth/validate
 ```
 
 **Connection Issues**
 ```bash
 # Verify API URL is accessible
-curl https://your-helios9-app.com/api/health
+curl https://helios9.app/api/health
 ```
 
 **Permission Errors**
@@ -377,8 +352,7 @@ This project is part of the Helios-9 platform. See the main project LICENSE for 
 
 ### Documentation
 - [MCP Protocol Specification](https://modelcontextprotocol.io/)
-- [Helios-9 API Documentation](https://your-helios9-app.com/docs/api)
-- [Helios-9 Main Documentation](../../README.md)
+- [Helios-9 API Documentation](https://helios9.app/docs/api)
 
 ### Community
 - GitHub Issues for bugs and features
@@ -388,3 +362,19 @@ This project is part of the Helios-9 platform. See the main project LICENSE for 
 ---
 
 **Built with ❤️ for the AI-native future of project management**
+
+## 🚀 Roadmap
+
+### Coming Soon
+- **Semantic Search**: AI-powered search using OpenAI embeddings and Supabase pgvector
+- **Task Dependencies**: Link related tasks and track workflows
+- **AI Conversations**: Save and analyze AI agent interactions
+- **Advanced Analytics**: Project insights and productivity metrics
+- **Bulk Operations**: Update multiple items at once
+- **Workflow Automation**: Trigger-based task creation and updates
+
+### Future Vision
+- Multi-agent collaboration support
+- Custom tool creation framework
+- Integration with popular project management tools
+- Real-time collaboration features

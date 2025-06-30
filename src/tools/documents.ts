@@ -125,7 +125,7 @@ export const createDocumentTool: MCPTool = {
       project_id: {
         type: 'string',
         format: 'uuid',
-        description: 'Optional project ID to associate the document with'
+        description: 'Project ID to associate the document with (required)'
       },
       title: {
         type: 'string',
@@ -147,7 +147,7 @@ export const createDocumentTool: MCPTool = {
         description: 'Additional metadata for the document'
       }
     },
-    required: ['title', 'content', 'document_type']
+    required: ['title', 'content', 'document_type', 'project_id']
   }
 }
 
@@ -163,8 +163,13 @@ export const createDocument = requireAuth(async (args: any) => {
   // Parse frontmatter and analyze content
   const contentAnalysis = analyzeDocumentContentHelper(documentData.content, documentData.document_type)
   
+  // Validate that project_id is provided
+  if (!documentData.project_id) {
+    throw new Error('project_id is required for document creation')
+  }
+
   const document = await supabaseService.createDocument({
-    project_id: documentData.project_id || '', // Ensure project_id is not undefined
+    project_id: documentData.project_id,
     title: documentData.title,
     content: documentData.content,
     document_type: documentData.document_type
