@@ -63,7 +63,7 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 
 ```bash
 # Required - Helios-9 API Configuration
-HELIOS_API_URL=https://helios9.app
+HELIOS_API_URL=https://www.helios9.app
 HELIOS_API_KEY=your_generated_api_key
 
 # Optional
@@ -139,7 +139,7 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/helios9-MCP-Server/dist/index.js"],
       "env": {
-        "HELIOS_API_URL": "https://helios9.app",
+        "HELIOS_API_URL": "https://www.helios9.app",
         "HELIOS_API_KEY": "your_generated_api_key"
       }
     }
@@ -156,7 +156,7 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/helios9-MCP-Server/dist/index.js"],
       "env": {
-        "HELIOS_API_URL": "https://helios9.app", 
+        "HELIOS_API_URL": "https://www.helios9.app", 
         "HELIOS_API_KEY": "your_generated_api_key"
       }
     }
@@ -171,7 +171,7 @@ from mcp import MCPClient
 import os
 
 # Set environment variables
-os.environ["HELIOS_API_URL"] = "https://helios9.app"
+os.environ["HELIOS_API_URL"] = "https://www.helios9.app"
 os.environ["HELIOS_API_KEY"] = "your_generated_api_key"
 
 client = MCPClient()
@@ -308,13 +308,13 @@ The server provides health information through logging:
 **Authentication Failed**
 ```bash
 # Check API key validity
-curl -H "Authorization: Bearer YOUR_API_KEY" https://helios9.app/api/auth/validate
+curl -H "Authorization: Bearer YOUR_API_KEY" https://www.helios9.app/api/auth/validate
 ```
 
 **Connection Issues**
 ```bash
 # Verify API URL is accessible
-curl https://helios9.app/api/health
+curl https://www.helios9.app/api/health
 ```
 
 **Permission Errors**
@@ -352,7 +352,6 @@ This project is part of the Helios-9 platform. See the main project LICENSE for 
 
 ### Documentation
 - [MCP Protocol Specification](https://modelcontextprotocol.io/)
-- [Helios-9 API Documentation](https://helios9.app/docs/api)
 
 ### Community
 - GitHub Issues for bugs and features

@@ -99,3 +99,7 @@ npm start
 ```
 
 Or use MCP Inspector for interactive testing.
+
+
+## App Links
+- Main SaaS app is at https://www.helios9.app
