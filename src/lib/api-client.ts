@@ -44,6 +44,7 @@ export type Profile = {
   username: string | null
   full_name: string | null
   avatar_url: string | null
+  tenant_id: string | null
 }
 
 export type AIConversation = {
@@ -143,6 +144,7 @@ export class ApiClient {
   private baseUrl: string
   private apiKey: string
   private currentUserId: string | null = null
+  private currentTenantId: string | null = null
 
   constructor() {
     const baseUrl = process.env.HELIOS_API_URL
@@ -247,7 +249,8 @@ export class ApiClient {
       })
 
       this.currentUserId = response.user.id
-      logger.info(`API authenticated for user: ${response.user.email}`)
+      this.currentTenantId = response.user.tenant_id || null
+      logger.info(`API authenticated for user: ${response.user.email}, tenant: ${response.user.tenant_id || 'none'}`)
       return response.user
     } catch (error) {
       logger.error('API authentication failed:', error)
@@ -263,6 +266,13 @@ export class ApiClient {
       throw new UnauthorizedError('No authenticated user')
     }
     return this.currentUserId
+  }
+
+  /**
+   * Get current tenant ID
+   */
+  getCurrentTenantId(): string | null {
+    return this.currentTenantId
   }
 
   /**

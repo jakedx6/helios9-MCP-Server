@@ -68,6 +68,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          tenant_id: string
           name: string
           description: string | null
           status: 'active' | 'archived' | 'completed'
@@ -77,6 +78,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          tenant_id: string
           name: string
           description?: string | null
           status?: 'active' | 'archived' | 'completed'
@@ -86,6 +88,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          tenant_id?: string
           name?: string
           description?: string | null
           status?: 'active' | 'archived' | 'completed'
@@ -97,6 +100,7 @@ export interface Database {
         Row: {
           id: string
           project_id: string
+          tenant_id: string
           title: string
           description: string | null
           status: 'todo' | 'in_progress' | 'done'
@@ -110,6 +114,7 @@ export interface Database {
         Insert: {
           id?: string
           project_id: string
+          tenant_id: string
           title: string
           description?: string | null
           status?: 'todo' | 'in_progress' | 'done'
@@ -123,6 +128,7 @@ export interface Database {
         Update: {
           id?: string
           project_id?: string
+          tenant_id?: string
           title?: string
           description?: string | null
           status?: 'todo' | 'in_progress' | 'done'
@@ -138,6 +144,7 @@ export interface Database {
         Row: {
           id: string
           project_id: string
+          tenant_id: string
           title: string
           content: string
           document_type: 'requirement' | 'design' | 'technical' | 'meeting_notes' | 'other'
@@ -148,6 +155,7 @@ export interface Database {
         Insert: {
           id?: string
           project_id: string
+          tenant_id: string
           title: string
           content: string
           document_type: 'requirement' | 'design' | 'technical' | 'meeting_notes' | 'other'
@@ -158,6 +166,7 @@ export interface Database {
         Update: {
           id?: string
           project_id?: string
+          tenant_id?: string
           title?: string
           content?: string
           document_type?: 'requirement' | 'design' | 'technical' | 'meeting_notes' | 'other'
@@ -171,6 +180,7 @@ export interface Database {
           id: string
           project_id: string
           user_id: string
+          tenant_id: string
           messages: Json
           created_at: string
           updated_at: string
@@ -179,6 +189,7 @@ export interface Database {
           id?: string
           project_id: string
           user_id: string
+          tenant_id: string
           messages: Json
           created_at?: string
           updated_at?: string
@@ -187,6 +198,7 @@ export interface Database {
           id?: string
           project_id?: string
           user_id?: string
+          tenant_id?: string
           messages?: Json
           created_at?: string
           updated_at?: string

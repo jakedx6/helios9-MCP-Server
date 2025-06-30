@@ -7,7 +7,8 @@
       "Bash(npm run clean:*)",
       "Bash(tsc:*)",
       "Bash(npx tsc:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__supabase-mcp-server__execute_sql"
     ],
     "deny": []
   },

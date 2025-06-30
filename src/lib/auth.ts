@@ -4,6 +4,7 @@ import { UnauthorizedError } from './api-client.js'
 
 export interface AuthContext {
   userId: string
+  tenantId: string
   profile: any
   authenticated: boolean
 }
@@ -59,6 +60,7 @@ export class AuthManager {
     
     this.authContext = {
       userId: profile.id,
+      tenantId: profile.tenant_id || null,
       profile,
       authenticated: true
     }
