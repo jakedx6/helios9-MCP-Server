@@ -251,15 +251,6 @@ interface Document {
 - **Per-key Limits**: Different limits can be set per API key
 - **Configurable**: Limits can be adjusted in the Helios-9 admin panel
 
-## 🧪 Development
-
-### Running in Development
-```bash
-npm run dev        # Watch mode with auto-reload
-npm run build      # Production build
-npm run start      # Start production server
-```
-
 ## 🏗️ Architecture
 
 ### API-First Design
