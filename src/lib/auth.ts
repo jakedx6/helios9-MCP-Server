@@ -4,7 +4,7 @@ import { UnauthorizedError } from './api-client.js'
 
 export interface AuthContext {
   userId: string
-  tenantId: string
+  tenantId: string | null
   profile: any
   authenticated: boolean
 }
@@ -66,7 +66,7 @@ export class AuthManager {
     }
 
     logger.info(`Service authenticated via API key for user: ${profile.email}`)
-    return this.authContext
+    return this.authContext!
   }
 
   /**
