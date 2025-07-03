@@ -174,12 +174,6 @@ class HeliosMCPServer {
             mimeType: 'application/json',
           },
           {
-            uri: 'helios9://project/{project_id}/board',
-            name: 'Task Board',
-            description: 'Kanban-style task board for project',
-            mimeType: 'application/json',
-          },
-          {
             uri: 'helios9://documents',
             name: 'All Documents',
             description: 'List of all user documents',
@@ -327,10 +321,6 @@ class HeliosMCPServer {
       return await this.allHandlers.get_project_context({ project_id: projectContextMatch[1] })
     }
     
-    const taskBoardMatch = uri.match(/^helios9:\/\/project\/([^\/]+)\/board$/)
-    if (taskBoardMatch) {
-      return await this.allHandlers.get_task_board({ project_id: taskBoardMatch[1] })
-    }
     
     const documentMatch = uri.match(/^helios9:\/\/document\/([^\/]+)$/)
     if (documentMatch) {

@@ -75,12 +75,6 @@ export interface ProjectContext {
   team_members: Profile[]
 }
 
-export interface TaskBoard {
-  todo: Task[]
-  in_progress: Task[]
-  done: Task[]
-  blocked?: Task[]
-}
 
 export interface Filter {
   status?: string
@@ -418,13 +412,6 @@ export class ApiClient {
     return response.context
   }
 
-  /**
-   * Get task board for Kanban view
-   */
-  async getTaskBoard(projectId: string): Promise<TaskBoard> {
-    const response = await this.request<{ board: TaskBoard }>(`/api/mcp/projects/${projectId}/board`)
-    return response.board
-  }
 
   /**
    * Additional methods for MCP compatibility

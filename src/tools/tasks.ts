@@ -47,10 +47,6 @@ const GetTaskContextSchema = z.object({
   task_id: z.string().uuid()
 })
 
-const GetTaskBoardSchema = z.object({
-  project_id: z.string().uuid()
-})
-
 /**
  * List tasks with filtering
  */
@@ -274,12 +270,7 @@ export const getTaskContext = requireAuth(async (args: any) => {
   logger.info('Getting task context', { task_id })
   
   // Get the task first to get project info
-  const tasks = await supabaseService.getTasks({ search: task_id })
-  const task = tasks.find(t => t.id === task_id)
-  
-  if (!task) {
-    throw new Error('Task not found')
-  }
+  const task = await supabaseService.getTask(task_id)
   
   // Get related documents from the same project
   const relatedDocuments = await supabaseService.getDocuments(
@@ -308,46 +299,6 @@ export const getTaskContext = requireAuth(async (args: any) => {
   }
 })
 
-/**
- * Get task board (Kanban view) for a project
- */
-export const getTaskBoardTool: MCPTool = {
-  name: 'get_task_board',
-  description: 'Get a Kanban-style task board for a project with tasks organized by status',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      project_id: {
-        type: 'string',
-        format: 'uuid',
-        description: 'The unique identifier of the project'
-      }
-    },
-    required: ['project_id']
-  }
-}
-
-export const getTaskBoard = requireAuth(async (args: any) => {
-  const { project_id } = GetTaskBoardSchema.parse(args)
-  
-  logger.info('Getting task board', { project_id })
-  
-  const taskBoard = await supabaseService.getTaskBoard(project_id)
-  
-  // Add board analytics
-  const boardAnalysis = {
-    total_tasks: Object.values(taskBoard).flat().length,
-    completion_rate: taskBoard.done.length / (Object.values(taskBoard).flat().length || 1),
-    bottlenecks: identifyBottlenecks(taskBoard),
-    flow_metrics: calculateFlowMetrics(taskBoard),
-    recommendations: generateBoardRecommendations(taskBoard)
-  }
-  
-  return {
-    ...taskBoard,
-    board_analysis: boardAnalysis
-  }
-})
 
 // Helper functions for task analysis
 function calculateCompletionStatus(task: any): string {
@@ -445,23 +396,6 @@ function calculateFlowMetrics(taskBoard: any): object {
   }
 }
 
-function generateBoardRecommendations(taskBoard: any): string[] {
-  const recommendations: string[] = []
-  
-  if (taskBoard.todo.length === 0) {
-    recommendations.push('Consider planning more work - the backlog is empty')
-  }
-  
-  if (taskBoard.in_progress.length > 5) {
-    recommendations.push('Too many tasks in progress - consider implementing WIP limits')
-  }
-  
-  if (taskBoard.done.length === 0) {
-    recommendations.push('No completed tasks visible - ensure work is being marked as done')
-  }
-  
-  return recommendations
-}
 
 // Removed task tools export from here - will be at end of file
 
@@ -489,16 +423,32 @@ export const getTask = requireAuth(async (args: any) => {
   
   logger.info('Getting task', { task_id })
   
-  const tasks = await supabaseService.getTasks({ search: task_id })
-  const task = tasks.find(t => t.id === task_id)
-  
-  if (!task) {
-    throw new Error('Task not found')
-  }
-  
-  return {
-    task,
-    message: `Task "${task.title}" retrieved successfully`
+  try {
+    // Use the direct getTask method instead of searching
+    const task = await supabaseService.getTask(task_id)
+    
+    logger.info('Task retrieved successfully', { task_id, title: task.title })
+    
+    return {
+      task,
+      message: `Task "${task.title}" retrieved successfully`
+    }
+  } catch (error: any) {
+    logger.error('Failed to get task', { 
+      task_id, 
+      error: error.message,
+      errorCode: error.code,
+      statusCode: error.statusCode,
+      fullError: error
+    })
+    
+    // Handle NotFoundError specifically
+    if (error.code === 'NOT_FOUND' || error.statusCode === 404) {
+      throw new Error(`Task with ID ${task_id} not found`)
+    }
+    
+    // Re-throw other errors
+    throw error
   }
 })
 
@@ -1171,7 +1121,6 @@ export const taskTools = {
   createTaskTool,
   getTaskTool,
   updateTaskTool,
-  getTaskBoardTool,
   addTaskDependencyTool,
   getTaskDependenciesTool,
   createTaskWorkflowTool,
@@ -1184,7 +1133,6 @@ export const taskHandlers = {
   create_task: createTask,
   get_task: getTask,
   update_task: updateTask,
-  get_task_board: getTaskBoard,
   add_task_dependency: addTaskDependency,
   get_task_dependencies: getTaskDependencies,
   create_task_workflow: createTaskWorkflow,

@@ -7,27 +7,75 @@ Supabase supports semantic search natively through the pgvector extension, which
 ## Architecture
 
 ```
-User Query → OpenAI Embeddings API → Vector Search (pgvector) → Ranked Results
+[MCP Tool Request] → [MCP Server] → [Helios-9 API] → [LLM Provider] → [pgvector] → [Results]
+         ↓                  ↓               ↓              ↓
+   semantic_search    Uses MCP      Uses stored      Generates      Vector
+      tool call        API Key       LLM API Key     embeddings     search
 ```
 
-## Implementation Steps
+## Key Design Decisions
 
-### 1. Enable pgvector Extension in Supabase
+1. **LLM API Keys Stay in Main App**: User's OpenAI/Anthropic/VoyageAI keys are securely stored and encrypted in the main Helios-9 application
+2. **MCP Server as Thin Client**: MCP server authenticates with Helios-9 API key and forwards requests
+3. **BYOK Model**: Users manage their own LLM provider keys for embeddings and AI features
+4. **Multi-Provider Support**: 
+   - **OpenAI**: Best value, general purpose
+   - **VoyageAI**: Superior quality, larger context (32K), specialized models for code
+5. **Document Chunking**: Large documents are split into overlapping chunks (less needed with VoyageAI)
 
+## Main Application Tasks (Helios-9 SaaS)
+
+### 1. Database Setup
+
+#### Enable pgvector Extension
 ```sql
--- Enable pgvector extension
+-- Run in Supabase SQL Editor
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-### 2. Add Embedding Columns to Tables
+#### Add Embedding Support to Tables
 
 ```sql
+-- Add support for multiple embedding providers
+CREATE TYPE embedding_provider AS ENUM ('openai', 'anthropic', 'voyageai');
+
+-- Update users table for provider preferences
+ALTER TABLE users ADD COLUMN preferred_embedding_provider embedding_provider DEFAULT 'openai';
+ALTER TABLE users ADD COLUMN voyageai_api_key_id UUID REFERENCES api_keys(id);
+
+-- Support for document chunking
+CREATE TABLE document_chunks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+  chunk_index INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  embedding vector(1536),
+  token_count INTEGER,
+  start_char INTEGER,
+  end_char INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(document_id, chunk_index)
+);
+
 -- Add embedding columns to existing tables
 ALTER TABLE documents ADD COLUMN embedding vector(1536);
-ALTER TABLE tasks ADD COLUMN embedding vector(1536);
-ALTER TABLE projects ADD COLUMN embedding vector(1536);
+ALTER TABLE documents ADD COLUMN embedding_provider embedding_provider;
+ALTER TABLE documents ADD COLUMN embedding_model TEXT;
+ALTER TABLE documents ADD COLUMN embedding_updated_at TIMESTAMPTZ;
 
--- Create indexes for fast similarity search
+ALTER TABLE tasks ADD COLUMN embedding vector(1536);
+ALTER TABLE tasks ADD COLUMN embedding_provider embedding_provider;
+ALTER TABLE tasks ADD COLUMN embedding_model TEXT;
+
+ALTER TABLE projects ADD COLUMN embedding vector(1536);
+ALTER TABLE projects ADD COLUMN embedding_provider embedding_provider;
+ALTER TABLE projects ADD COLUMN embedding_model TEXT;
+
+-- Create indexes for fast similarity search (IVFFlat for speed)
+CREATE INDEX document_chunks_embedding_idx ON document_chunks 
+USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
+
 CREATE INDEX documents_embedding_idx ON documents 
 USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
@@ -41,53 +89,96 @@ USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 ```
 
-### 3. Create Embedding Generation Function
+### 2. Create Database Functions
 
+#### Embedding Update Functions
 ```sql
--- Function to update embeddings (called from application)
+-- Update document embedding
 CREATE OR REPLACE FUNCTION update_document_embedding(
   doc_id UUID,
-  embedding_vector vector
+  embedding_vector vector,
+  model_name TEXT
 )
 RETURNS void AS $$
 BEGIN
   UPDATE documents 
-  SET embedding = embedding_vector
+  SET 
+    embedding = embedding_vector,
+    embedding_model = model_name,
+    embedding_updated_at = NOW()
   WHERE id = doc_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Update document chunk embeddings
+CREATE OR REPLACE FUNCTION update_document_chunk_embedding(
+  chunk_id UUID,
+  embedding_vector vector
+)
+RETURNS void AS $$
+BEGIN
+  UPDATE document_chunks 
+  SET embedding = embedding_vector
+  WHERE id = chunk_id;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-### 4. Create Similarity Search Functions
+#### Search Functions
 
 ```sql
--- Semantic search function for documents
-CREATE OR REPLACE FUNCTION search_documents_semantic(
+-- Semantic search with document chunks
+CREATE OR REPLACE FUNCTION search_documents_with_chunks(
   query_embedding vector,
   similarity_threshold float DEFAULT 0.5,
   match_count int DEFAULT 10,
   user_id_filter UUID DEFAULT NULL
 )
 RETURNS TABLE (
-  id UUID,
+  document_id UUID,
   title TEXT,
-  content TEXT,
-  similarity float
+  project_id UUID,
+  relevant_chunks JSONB,
+  max_similarity float,
+  avg_similarity float
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
-    d.id,
-    d.title,
-    d.content,
-    1 - (d.embedding <=> query_embedding) as similarity
-  FROM documents d
-  JOIN projects p ON d.project_id = p.id
-  WHERE 
-    (user_id_filter IS NULL OR p.user_id = user_id_filter)
-    AND d.embedding IS NOT NULL
-    AND 1 - (d.embedding <=> query_embedding) > similarity_threshold
-  ORDER BY d.embedding <=> query_embedding
+  WITH chunk_matches AS (
+    SELECT 
+      d.id as document_id,
+      d.title,
+      d.project_id,
+      c.chunk_index,
+      c.content,
+      1 - (c.embedding <=> query_embedding) as similarity
+    FROM documents d
+    JOIN document_chunks c ON d.id = c.document_id
+    JOIN projects p ON d.project_id = p.id
+    WHERE 
+      (user_id_filter IS NULL OR p.user_id = user_id_filter)
+      AND c.embedding IS NOT NULL
+      AND 1 - (c.embedding <=> query_embedding) > similarity_threshold
+  ),
+  aggregated AS (
+    SELECT 
+      document_id,
+      title,
+      project_id,
+      jsonb_agg(
+        jsonb_build_object(
+          'chunk_index', chunk_index,
+          'content', content,
+          'similarity', similarity
+        ) ORDER BY similarity DESC
+      ) as relevant_chunks,
+      MAX(similarity) as max_similarity,
+      AVG(similarity) as avg_similarity
+    FROM chunk_matches
+    GROUP BY document_id, title, project_id
+  )
+  SELECT * FROM aggregated
+  ORDER BY max_similarity DESC
   LIMIT match_count;
 END;
 $$ LANGUAGE plpgsql;
@@ -124,10 +215,8 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-### 5. Create Hybrid Search (Combines Semantic + Keyword)
-
+#### Hybrid Search (Semantic + Keyword)
 ```sql
--- Hybrid search combining semantic and full-text search
 CREATE OR REPLACE FUNCTION hybrid_search_documents(
   query_text TEXT,
   query_embedding vector,
@@ -185,49 +274,59 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-## API Implementation
+### 3. API Implementation
 
-### 1. Update Helios9 API Endpoints
-
-Create new endpoint: `/app/api/mcp/search/semantic/route.ts`
+#### Semantic Search Endpoint
+Create `/app/api/mcp/search/semantic/route.ts`:
 
 ```typescript
 import { createClient } from '@/lib/supabase/server'
 import { authenticateMcpApiKey } from '@/lib/auth/mcp'
+import { getEmbeddingProvider } from '@/lib/embeddings'
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Authenticate MCP request
     const userId = await authenticateMcpApiKey(request)
     if (!userId) {
       return NextResponse.json({ error: 'Invalid API key' }, { status: 401 })
     }
 
     const { query, search_types, similarity_threshold = 0.5, max_results = 10 } = await request.json()
-
-    // Generate embedding for the query
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: query,
-    })
-    
-    const queryEmbedding = embeddingResponse.data[0].embedding
-
     const supabase = await createClient()
+
+    // 2. Get user's embedding provider configuration
+    const { data: user } = await supabase
+      .from('users')
+      .select(`
+        preferred_embedding_provider,
+        openai_key:api_keys!users_openai_api_key_id_fkey(decrypted_key),
+        anthropic_key:api_keys!users_anthropic_api_key_id_fkey(decrypted_key),
+        voyageai_key:api_keys!users_voyageai_api_key_id_fkey(decrypted_key)
+      `)
+      .eq('id', userId)
+      .single()
+
+    if (!user?.openai_key && !user?.voyageai_key) {
+      return NextResponse.json({ 
+        error: 'No embedding provider configured. Please add an OpenAI or VoyageAI API key in settings.' 
+      }, { status: 400 })
+    }
+
+    // 3. Generate embedding using user's provider
+    const embeddingProvider = getEmbeddingProvider(user)
+    const queryEmbedding = await embeddingProvider.createEmbedding(query)
+
+    // 4. Perform searches
     const results = {
       documents: [],
       tasks: [],
       projects: []
     }
 
-    // Search documents
     if (search_types.includes('documents')) {
-      const { data: docs } = await supabase.rpc('search_documents_semantic', {
+      const { data: docs } = await supabase.rpc('search_documents_with_chunks', {
         query_embedding: queryEmbedding,
         similarity_threshold,
         match_count: max_results,
@@ -236,7 +335,6 @@ export async function POST(request: NextRequest) {
       results.documents = docs || []
     }
 
-    // Search tasks
     if (search_types.includes('tasks')) {
       const { data: tasks } = await supabase.rpc('search_tasks_semantic', {
         query_embedding: queryEmbedding,
@@ -247,10 +345,14 @@ export async function POST(request: NextRequest) {
       results.tasks = tasks || []
     }
 
+    // 5. Track usage for billing
+    await trackEmbeddingUsage(userId, 'semantic_search', query.length)
+
     return NextResponse.json({
       query,
       results,
-      total_results: results.documents.length + results.tasks.length
+      total_results: results.documents.length + results.tasks.length,
+      embedding_model: embeddingProvider.model
     })
 
   } catch (error) {
@@ -260,8 +362,221 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-### 2. Update MCP Server API Client
+#### Embedding Provider Service
+Create `/lib/embeddings/index.ts`:
 
+```typescript
+import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
+
+interface EmbeddingProvider {
+  createEmbedding(text: string): Promise<number[]>
+  model: string
+  dimensions: number
+  provider: string
+}
+
+export function getEmbeddingProvider(user: any): EmbeddingProvider {
+  // Check for VoyageAI first (often better for domain-specific content)
+  if (user.voyageai_key) {
+    return {
+      provider: 'voyageai',
+      model: 'voyage-large-2',
+      dimensions: 1536,
+      createEmbedding: async (text: string) => {
+        const response = await fetch('https://api.voyageai.com/v1/embeddings', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${user.voyageai_key.decrypted_key}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            input: text.slice(0, 120000), // VoyageAI supports up to 120k characters
+            model: 'voyage-large-2'
+          })
+        })
+        
+        const data = await response.json()
+        return data.data[0].embedding
+      }
+    }
+  }
+  
+  // Fall back to OpenAI
+  if (user.openai_key) {
+    const openai = new OpenAI({ apiKey: user.openai_key.decrypted_key })
+    
+    return {
+      provider: 'openai',
+      model: 'text-embedding-3-small',
+      dimensions: 1536,
+      createEmbedding: async (text: string) => {
+        const response = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: text.slice(0, 8000) // Token limit
+        })
+        return response.data[0].embedding
+      }
+    }
+  }
+  
+  // When Anthropic releases embeddings, add support here
+  
+  throw new Error('No embedding provider available. Please configure OpenAI or VoyageAI API key.')
+}
+```
+
+#### Advanced Embedding Provider Selection
+Create `/lib/embeddings/provider-selection.ts`:
+
+```typescript
+interface ProviderConfig {
+  provider: string
+  model: string
+  dimensions: number
+  maxTokens: number
+  costPer1MTokens: number
+}
+
+const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
+  'voyageai-large': {
+    provider: 'voyageai',
+    model: 'voyage-large-2',
+    dimensions: 1536,
+    maxTokens: 32000,
+    costPer1MTokens: 0.12
+  },
+  'voyageai-code': {
+    provider: 'voyageai',
+    model: 'voyage-code-2',
+    dimensions: 1536,
+    maxTokens: 16000,
+    costPer1MTokens: 0.12
+  },
+  'openai-small': {
+    provider: 'openai',
+    model: 'text-embedding-3-small',
+    dimensions: 1536,
+    maxTokens: 8191,
+    costPer1MTokens: 0.02
+  },
+  'openai-large': {
+    provider: 'openai',
+    model: 'text-embedding-3-large',
+    dimensions: 3072,
+    maxTokens: 8191,
+    costPer1MTokens: 0.13
+  }
+}
+
+export function selectOptimalProvider(
+  user: any, 
+  contentType: 'general' | 'code' | 'mixed' = 'general'
+): ProviderConfig {
+  // For code-heavy content, prefer VoyageAI Code model
+  if (contentType === 'code' && user.voyageai_key) {
+    return PROVIDER_CONFIGS['voyageai-code']
+  }
+  
+  // For general content, prefer VoyageAI Large for better quality
+  if (user.voyageai_key && user.preferred_embedding_provider === 'voyageai') {
+    return PROVIDER_CONFIGS['voyageai-large']
+  }
+  
+  // Fall back to OpenAI
+  if (user.openai_key) {
+    return user.prefer_quality_over_cost 
+      ? PROVIDER_CONFIGS['openai-large']
+      : PROVIDER_CONFIGS['openai-small']
+  }
+  
+  throw new Error('No embedding provider available')
+}
+```
+
+#### Document Chunking Service
+Create `/lib/embeddings/chunking.ts`:
+
+```typescript
+interface DocumentChunk {
+  content: string
+  start_char: number
+  end_char: number
+  token_estimate: number
+}
+
+export function chunkDocument(content: string, maxTokens: number = 1500): DocumentChunk[] {
+  const chunks: DocumentChunk[] = []
+  const paragraphs = content.split(/\n\n+/)
+  
+  let currentChunk = ''
+  let currentStart = 0
+  let position = 0
+  
+  for (const paragraph of paragraphs) {
+    const paragraphTokens = estimateTokens(paragraph)
+    const currentTokens = estimateTokens(currentChunk)
+    
+    if (currentTokens + paragraphTokens > maxTokens && currentChunk) {
+      chunks.push({
+        content: currentChunk.trim(),
+        start_char: currentStart,
+        end_char: position,
+        token_estimate: currentTokens
+      })
+      currentChunk = paragraph
+      currentStart = position
+    } else {
+      currentChunk += (currentChunk ? '\n\n' : '') + paragraph
+    }
+    
+    position += paragraph.length + 2 // +2 for \n\n
+  }
+  
+  if (currentChunk) {
+    chunks.push({
+      content: currentChunk.trim(),
+      start_char: currentStart,
+      end_char: content.length,
+      token_estimate: estimateTokens(currentChunk)
+    })
+  }
+  
+  return chunks
+}
+
+function estimateTokens(text: string): number {
+  // Rough estimate: ~4 characters per token
+  return Math.ceil(text.length / 4)
+}
+```
+
+### 4. Embedding Generation Webhooks
+
+#### Document Update Webhook
+Create `/app/api/webhooks/embeddings/documents/route.ts`:
+
+```typescript
+export async function POST(request: Request) {
+  const { type, record } = await request.json()
+  
+  if (type === 'INSERT' || type === 'UPDATE') {
+    // Queue embedding generation
+    await queueEmbeddingGeneration({
+      entity_type: 'document',
+      entity_id: record.id,
+      content: `${record.title}\n\n${record.content}`,
+      user_id: record.user_id
+    })
+  }
+  
+  return Response.json({ success: true })
+}
+```
+
+## MCP Server Tasks
+
+### 1. Update API Client
 In `src/lib/api-client.ts`:
 
 ```typescript
@@ -284,8 +599,7 @@ async semanticSearch(query: string, options: {
 }
 ```
 
-### 3. Update Semantic Search Tool Handler
-
+### 2. Update Semantic Search Tool
 In `src/tools/intelligent-search.ts`:
 
 ```typescript
@@ -294,14 +608,14 @@ export const semanticSearch = requireAuth(async (args: any) => {
   
   logger.info('Performing semantic search', { query, context_type, similarity_threshold })
 
-  // Use the new semantic search API
-  const searchResults = await supabaseService.semanticSearch(query, {
+  // Delegate to main app API
+  const searchResults = await apiClient.semanticSearch(query, {
     search_types: getSearchTypesForContext(context_type),
     similarity_threshold,
     max_results
   })
   
-  // Format results for MCP
+  // Format results for AI agent consumption
   const formattedResults = formatSemanticResults(searchResults, include_explanations)
   
   return {
@@ -311,87 +625,123 @@ export const semanticSearch = requireAuth(async (args: any) => {
     total_results: formattedResults.length,
     search_metadata: {
       similarity_threshold,
-      embeddings_model: 'text-embedding-3-small'
+      embeddings_model: searchResults.embedding_model
     }
   }
 })
-```
 
-## Embedding Generation Strategy
-
-### 1. Real-time Embedding Generation
-
-Add webhook or background job to generate embeddings when content is created/updated:
-
-```typescript
-// In document creation/update endpoints
-async function generateAndStoreEmbedding(content: string, recordId: string, tableName: string) {
-  const embedding = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: content,
-  })
+// Helper to format results with context
+function formatSemanticResults(results: any, includeExplanations: boolean) {
+  const formatted = []
   
-  await supabase.rpc(`update_${tableName}_embedding`, {
-    record_id: recordId,
-    embedding_vector: embedding.data[0].embedding
-  })
-}
-```
-
-### 2. Batch Embedding Generation
-
-For existing data, create a migration script:
-
-```typescript
-async function backfillEmbeddings() {
-  // Get all documents without embeddings
-  const { data: documents } = await supabase
-    .from('documents')
-    .select('id, title, content')
-    .is('embedding', null)
-    .limit(100)
-
-  for (const doc of documents) {
-    const text = `${doc.title} ${doc.content}`.slice(0, 8000) // Token limit
-    await generateAndStoreEmbedding(text, doc.id, 'documents')
-    // Add delay to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 100))
+  // Format document results with chunks
+  for (const doc of results.documents || []) {
+    formatted.push({
+      type: 'document',
+      id: doc.document_id,
+      title: doc.title,
+      project_id: doc.project_id,
+      similarity: doc.max_similarity,
+      relevant_sections: doc.relevant_chunks.map((chunk: any) => ({
+        content: chunk.content,
+        similarity: chunk.similarity
+      })),
+      explanation: includeExplanations ? 
+        `Found ${doc.relevant_chunks.length} relevant sections with ${Math.round(doc.max_similarity * 100)}% similarity` : 
+        undefined
+    })
   }
+  
+  // Format task results
+  for (const task of results.tasks || []) {
+    formatted.push({
+      type: 'task',
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      similarity: task.similarity,
+      explanation: includeExplanations ?
+        `Task matches query with ${Math.round(task.similarity * 100)}% similarity` :
+        undefined
+    })
+  }
+  
+  return formatted
 }
 ```
 
-## Cost Optimization
+## Implementation Checklist
 
-1. **Use text-embedding-3-small**: 5x cheaper than ada-002, better performance
-2. **Cache embeddings**: Store in database, only generate once
-3. **Truncate content**: Limit to 8K tokens before embedding
-4. **Batch operations**: Process multiple items in single API calls
+### Main Application (Helios-9)
+- [ ] Enable pgvector extension in Supabase
+- [ ] Run database migrations for embedding columns and chunks table
+- [ ] Create SQL functions for search and embedding updates
+- [ ] Implement `/api/mcp/search/semantic` endpoint
+- [ ] Create embedding provider service with OpenAI support
+- [ ] Implement document chunking service
+- [ ] Set up webhooks for automatic embedding generation
+- [ ] Create background job for embedding backfill
+- [ ] Add usage tracking for billing
 
-## Performance Optimization
+### MCP Server
+- [ ] Update `api-client.ts` with semantic search method
+- [ ] Enhance `intelligent-search.ts` tool to use new API
+- [ ] Add result formatting helpers for AI consumption
+- [ ] Update tool descriptions and parameters
+- [ ] Test integration with main app API
 
-1. **Use IVFFlat indexes**: Faster than exact search for large datasets
-2. **Hybrid search**: Combine with full-text search for better results
-3. **Prefilter by user**: Reduce search space using RLS
-4. **Limit result count**: Return top N results only
+## Cost & Performance Considerations
 
-## Estimated Costs
+### Cost Optimization
+- **Model Choice**: 
+  - OpenAI text-embedding-3-small: $0.02/1M tokens (best value)
+  - VoyageAI voyage-large-2: $0.12/1M tokens (better quality)
+  - VoyageAI voyage-code-2: $0.12/1M tokens (optimized for code)
+- **Smart Chunking**: Only embed meaningful content chunks
+- **Caching**: Store embeddings permanently, regenerate only on significant changes
+- **Batch Processing**: Group embedding requests to reduce API calls
 
-- OpenAI Embeddings: ~$0.02 per 1M tokens
-- Average document: ~500 tokens = $0.00001 per document
-- 10,000 documents = ~$0.10 for initial embeddings
-- Ongoing: ~$0.01/month for 1000 new documents
+### Performance Optimization
+- **VoyageAI Advantages**:
+  - 4x larger context window (32K vs 8K tokens)
+  - Better domain-specific performance
+  - No need for aggressive chunking
+- **Indexing**: IVFFlat indexes balance speed and accuracy
+- **User Filtering**: Apply RLS before vector operations
+- **Result Limiting**: Return top N results to reduce payload size
+- **Hybrid Search**: Combine with keyword search for better coverage
 
-## Security Considerations
+### Cost Estimates
+| Provider | Model | Initial 10K docs | Monthly 1K docs | Per Search |
+|----------|-------|------------------|-----------------|------------|
+| OpenAI | text-embedding-3-small | ~$0.10 | ~$0.01 | ~$0.00002 |
+| VoyageAI | voyage-large-2 | ~$0.60 | ~$0.06 | ~$0.00012 |
+| VoyageAI | voyage-code-2 | ~$0.60 | ~$0.06 | ~$0.00012 |
 
-1. **RLS still applies**: Embeddings respect row-level security
-2. **API key protection**: Store OpenAI key securely
-3. **Rate limiting**: Implement to prevent abuse
-4. **Input sanitization**: Clean queries before embedding
+## Security & Privacy
 
-## Next Steps
+1. **API Key Isolation**: LLM keys never leave main app
+2. **Row-Level Security**: All searches respect user permissions
+3. **Input Validation**: Sanitize queries before processing
+4. **Rate Limiting**: Prevent abuse at API level
+5. **Audit Trail**: Log searches for security monitoring
 
-1. Create database migration to add pgvector and embedding columns
-2. Implement embedding generation in document/task creation flows
-3. Create semantic search API endpoint
-4. Update MCP tools to use new semantic search
-5. Backfill embeddings for existing content
+## Future Enhancements
+
+### Phase 2 Features
+- Anthropic embeddings (when available)
+- Cohere embeddings integration
+- Relevance feedback and learning
+- Query expansion and synonyms
+- Smart summarization of results
+- Search analytics dashboard
+- Auto-detect content type for optimal model selection
+
+### Phase 3 Features
+- Cross-project semantic search
+- Team-wide knowledge graph
+- Automatic tagging based on embeddings
+- Similar item recommendations
+- Natural language project navigation
+- Multi-modal search (images, diagrams)
+- Custom fine-tuned embeddings

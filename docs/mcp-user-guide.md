@@ -33,7 +33,6 @@ Model Context Protocol (MCP) is an open standard that enables AI applications to
 - `list_tasks` - Get tasks with filtering
 - `create_task` - Create new tasks
 - `update_task` - Modify tasks
-- `get_task_board` - Get Kanban-style task board
 - `bulk_update_tasks` - Update multiple tasks
 - `add_task_dependency` - Create task dependencies
 
@@ -174,8 +173,8 @@ AI: [Uses get_project_context tool for comprehensive overview]
 
 ### Task Management
 ```
-You: "Show me my task board for the website project"
-AI: [Uses get_task_board tool to display Kanban board]
+You: "Show me tasks for the website project"
+AI: [Uses list_tasks tool to display tasks by status]
 
 You: "Create a task to implement user authentication"
 AI: [Uses create_task tool with details]

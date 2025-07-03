@@ -183,31 +183,6 @@ Project[] = {
 }
 ```
 
-### `get_task_board`
-**Description**: Get Kanban-style task board for a project.
-
-**Parameters**:
-```typescript
-{
-  project_id: string
-  include_completed?: boolean  // Include done tasks
-  group_by?: "status" | "priority" | "assignee"
-}
-```
-
-**Returns**: Organized task board structure
-```typescript
-{
-  todo: Task[]
-  in_progress: Task[]
-  done: Task[]
-  metadata: {
-    total_tasks: number
-    completion_rate: number
-    avg_completion_time: number
-  }
-}
-```
 
 ### `bulk_update_tasks`
 **Description**: Update multiple tasks at once.

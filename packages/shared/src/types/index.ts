@@ -207,15 +207,7 @@ export const ProjectContextSchema = z.object({
   team_members: z.array(ProfileSchema),
 })
 
-export const TaskBoardSchema = z.object({
-  todo: z.array(TaskSchema),
-  in_progress: z.array(TaskSchema),
-  done: z.array(TaskSchema),
-  blocked: z.array(TaskSchema).optional(),
-})
-
 export type ProjectContext = z.infer<typeof ProjectContextSchema>
-export type TaskBoard = z.infer<typeof TaskBoardSchema>
 
 // Error types
 export class HeliosError extends Error {
