@@ -1,0 +1,45 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+      
+      - name: Bump version
+        run: |
+          npm version ${{ github.event.inputs.version-type }} -m "chore: bump version to %s"
+      
+      - name: Push changes
+        run: |
+          git push origin main --follow-tags
+      
+      - name: Trigger info
+        run: |
+          echo "✅ Version bumped successfully!"
+          echo "The auto-release workflow will now trigger and publish to npm."

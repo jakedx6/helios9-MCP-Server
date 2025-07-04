@@ -1,0 +1,92 @@
+name: Auto Release on Main
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'package.json'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.version-check.outputs.changed }}
+      new-version: ${{ steps.version-check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check if version changed
+        id: version-check
+        run: |
+          # Get current version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Get previous version
+          git checkout HEAD~1
+          PREVIOUS_VERSION=$(node -p "require('./package.json').version")
+          echo "Previous version: $PREVIOUS_VERSION"
+          
+          # Check if version changed
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version unchanged"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org/'
+      
+      - run: npm install
+      
+      - run: npm run build
+      
+      - run: npm test --if-present
+      
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.new-version }}
+          release_name: Release v${{ needs.check-version.outputs.new-version }}
+          body: |
+            ## What's Changed
+            
+            Auto-released version ${{ needs.check-version.outputs.new-version }}
+            
+            ### Installation
+            ```bash
+            npx -y helios9-mcp-server@latest --api-key YOUR_KEY
+            ```
+            
+            Full changelog: https://github.com/${{ github.repository }}/compare/v${{ needs.check-version.outputs.new-version }}...HEAD
+          draft: false
+          prerelease: false
+      
+      - name: Notify Success
+        run: |
+          echo "🎉 Successfully published version ${{ needs.check-version.outputs.new-version }} to npm!"
+          echo "📦 View package: https://www.npmjs.com/package/helios9-mcp-server"
+          echo "🏷️ View release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.check-version.outputs.new-version }}"

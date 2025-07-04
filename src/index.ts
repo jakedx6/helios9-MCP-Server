@@ -43,7 +43,7 @@ function parseArgs() {
       console.log(`
 Helios-9 MCP Server v${HELIOS_VERSION}
 
-Usage: npx @helios9/mcp-server@latest --api-key YOUR_KEY [options]
+Usage: npx helios9-mcp-server@latest --api-key YOUR_KEY [options]
 
 Options:
   --api-key <key>    Helios-9 API key (required)
@@ -55,7 +55,7 @@ Environment variables:
   HELIOS_API_URL     Alternative to --api-url
 
 Example:
-  npx -y @helios9/mcp-server@latest --api-key hel9_your_api_key_here
+  npx -y helios9-mcp-server@latest --api-key hel9_your_api_key_here
 `)
       process.exit(0)
     }

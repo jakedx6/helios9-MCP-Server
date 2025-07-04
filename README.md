@@ -40,7 +40,7 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 
 #### Option 1: Run directly with npx (Recommended)
 ```bash
-npx -y @helios9/mcp-server@latest --api-key YOUR_HELIOS9_API_KEY
+npx -y helios9-mcp-server@latest --api-key YOUR_HELIOS9_API_KEY
 ```
 
 #### Option 2: Clone and build locally
@@ -144,7 +144,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "helios9": {
       "command": "npx",
-      "args": ["-y", "@helios9/mcp-server@latest"],
+      "args": ["-y", "helios9-mcp-server@latest"],
       "env": {
         "HELIOS_API_URL": "https://www.helios9.app",
         "HELIOS_API_KEY": "your_generated_api_key"
@@ -403,10 +403,10 @@ This project is part of the Helios-9 platform. See the main project LICENSE for 
 4. **Verify publication:**
    ```bash
    # Check if package is available
-   npm view @helios9/mcp-server
+   npm view helios9-mcp-server
    
    # Test installation
-   npx -y @helios9/mcp-server@latest --help
+   npx -y helios9-mcp-server@latest --help
    ```
 
 ### Version Management
