@@ -45,6 +45,9 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
       
@@ -64,13 +67,23 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
+      - name: Create Git Tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          # Check if tag already exists
+          if git rev-parse v${{ needs.check-version.outputs.new-version }} >/dev/null 2>&1; then
+            echo "Tag v${{ needs.check-version.outputs.new-version }} already exists"
+          else
+            git tag -a v${{ needs.check-version.outputs.new-version }} -m "Release v${{ needs.check-version.outputs.new-version }}"
+            git push origin v${{ needs.check-version.outputs.new-version }}
+          fi
+      
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.check-version.outputs.new-version }}
-          release_name: Release v${{ needs.check-version.outputs.new-version }}
+          name: Release v${{ needs.check-version.outputs.new-version }}
           body: |
             ## What's Changed
             
@@ -81,9 +94,10 @@ jobs:
             npx -y helios9-mcp-server@latest --api-key YOUR_KEY
             ```
             
-            Full changelog: https://github.com/${{ github.repository }}/compare/v${{ needs.check-version.outputs.new-version }}...HEAD
+            View on npm: https://www.npmjs.com/package/helios9-mcp-server
           draft: false
           prerelease: false
+          generate_release_notes: true
       
       - name: Notify Success
         run: |
