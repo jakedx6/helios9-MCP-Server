@@ -372,6 +372,57 @@ This project is part of the Helios-9 platform. See the main project LICENSE for 
 - Discussions for questions and ideas
 - Discord for real-time chat
 
+## 📦 Publishing to npm
+
+### For Maintainers
+
+1. **Login to npm:**
+   ```bash
+   npm login
+   # Enter your npm credentials
+   ```
+
+2. **Verify package before publishing:**
+   ```bash
+   # Dry run to see what will be published
+   npm publish --dry-run
+   
+   # Check package size
+   npm pack --dry-run
+   ```
+
+3. **Publish to npm:**
+   ```bash
+   # For initial publish or updates
+   npm publish
+   
+   # For beta/alpha releases
+   npm publish --tag beta
+   ```
+
+4. **Verify publication:**
+   ```bash
+   # Check if package is available
+   npm view @helios9/mcp-server
+   
+   # Test installation
+   npx -y @helios9/mcp-server@latest --help
+   ```
+
+### Version Management
+
+Update version before publishing:
+```bash
+# Patch release (1.0.0 -> 1.0.1)
+npm version patch
+
+# Minor release (1.0.0 -> 1.1.0)
+npm version minor
+
+# Major release (1.0.0 -> 2.0.0)
+npm version major
+```
+
 ---
 
 **Built with ❤️ for the AI-native future of project management**

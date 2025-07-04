@@ -10,7 +10,8 @@
       "Bash(node:*)",
       "mcp__supabase-mcp-server__execute_sql",
       "Bash(ls:*)",
-      "Bash(HELIOS_API_URL=https://www.helios9.app node dist/index.js --api-key test_key)"
+      "Bash(HELIOS_API_URL=https://www.helios9.app node dist/index.js --api-key test_key)",
+      "Bash(npm publish:*)"
     ],
     "deny": []
   },

@@ -15,7 +15,7 @@
     "node": ">=16.0.0"
   },
   "bin": {
-    "helios9-mcp": "./dist/index.js"
+    "helios9-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -28,7 +28,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
     "@supabase/supabase-js": "^2.39.0",
-
     "zod": "^3.22.0",
     "winston": "^3.11.0",
     "dotenv": "^16.3.0"
@@ -48,7 +47,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/helios9/mcp-server.git"
+    "url": "git+https://github.com/helios9/mcp-server.git"
   },
   "bugs": {
     "url": "https://github.com/helios9/mcp-server/issues"
