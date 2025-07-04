@@ -29,6 +29,52 @@ const MCP_PROTOCOL_VERSION = '2024-11-05'
 // MCP clients pass env vars directly, so .env is optional
 dotenv.config()
 
+// Parse CLI arguments
+function parseArgs() {
+  const args = process.argv.slice(2)
+  const options: { apiKey?: string; apiUrl?: string } = {}
+  
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--api-key' && i + 1 < args.length) {
+      options.apiKey = args[++i]
+    } else if (args[i] === '--api-url' && i + 1 < args.length) {
+      options.apiUrl = args[++i]
+    } else if (args[i] === '--help' || args[i] === '-h') {
+      console.log(`
+Helios-9 MCP Server v${HELIOS_VERSION}
+
+Usage: npx @helios9/mcp-server@latest --api-key YOUR_KEY [options]
+
+Options:
+  --api-key <key>    Helios-9 API key (required)
+  --api-url <url>    Helios-9 API URL (optional, defaults to production)
+  --help, -h         Show this help message
+
+Environment variables:
+  HELIOS_API_KEY     Alternative to --api-key
+  HELIOS_API_URL     Alternative to --api-url
+
+Example:
+  npx -y @helios9/mcp-server@latest --api-key hel9_your_api_key_here
+`)
+      process.exit(0)
+    }
+  }
+  
+  return options
+}
+
+// Parse CLI arguments
+const cliOptions = parseArgs()
+
+// Override environment variables with CLI arguments if provided
+if (cliOptions.apiKey) {
+  process.env.HELIOS_API_KEY = cliOptions.apiKey
+}
+if (cliOptions.apiUrl) {
+  process.env.HELIOS_API_URL = cliOptions.apiUrl
+}
+
 // Debug: Log environment variable status
 const hasHeliosUrl = !!process.env.HELIOS_API_URL
 const hasHeliosKey = !!process.env.HELIOS_API_KEY

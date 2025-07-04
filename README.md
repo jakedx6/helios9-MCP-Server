@@ -32,12 +32,18 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 16+ 
 - Access to Helios-9 main application with API key generation
 - MCP-compatible AI client (Claude Desktop, OpenAI, etc.)
 
-### Installation
+### Installation Options
 
+#### Option 1: Run directly with npx (Recommended)
+```bash
+npx -y @helios9/mcp-server@latest --api-key YOUR_HELIOS9_API_KEY
+```
+
+#### Option 2: Clone and build locally
 1. **Install dependencies:**
    ```bash
    npm install
@@ -132,6 +138,23 @@ MCP Resources and Prompts are planned features that will enable:
 
 Add to your `claude_desktop_config.json`:
 
+#### Option 1: Using npx (Recommended)
+```json
+{
+  "mcpServers": {
+    "helios9": {
+      "command": "npx",
+      "args": ["-y", "@helios9/mcp-server@latest"],
+      "env": {
+        "HELIOS_API_URL": "https://www.helios9.app",
+        "HELIOS_API_KEY": "your_generated_api_key"
+      }
+    }
+  }
+}
+```
+
+#### Option 2: Using local installation
 ```json
 {
   "mcpServers": {

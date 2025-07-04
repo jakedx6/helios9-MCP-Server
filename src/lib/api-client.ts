@@ -480,8 +480,22 @@ export class ApiClient {
   }
 }
 
-// Export singleton instance
-export const apiClient = new ApiClient()
+// Export singleton instance (lazy initialization)
+let _apiClient: ApiClient | null = null
 
-// Maintain backward compatibility by aliating the service
+export function getApiClient(): ApiClient {
+  if (!_apiClient) {
+    _apiClient = new ApiClient()
+  }
+  return _apiClient
+}
+
+// For backward compatibility
+export const apiClient = new Proxy({} as ApiClient, {
+  get(target, prop, receiver) {
+    return Reflect.get(getApiClient(), prop, receiver)
+  }
+})
+
+// Maintain backward compatibility by aliasing the service
 export const supabaseService = apiClient
