@@ -522,8 +522,10 @@ Please provide detailed feedback with specific examples and actionable recommend
       // Start server anyway to provide better error messages to MCP clients
     }
 
-    // Start the server first (before authentication)
+    // Create the transport
     const transport = new StdioServerTransport()
+    
+    // Connect the transport - this sets up stdio listeners and keeps the process alive
     await this.server.connect(transport)
     
     logger.info('Helios-9 MCP Server started and ready for connections')
@@ -552,21 +554,29 @@ async function main() {
   const server = new HeliosMCPServer()
   
   // Handle graceful shutdown
-  process.on('SIGINT', async () => {
-    logger.info('Received SIGINT, shutting down gracefully')
+  const shutdown = async () => {
     await server.stop()
     process.exit(0)
+  }
+  
+  process.on('SIGINT', async () => {
+    logger.info('Received SIGINT, shutting down gracefully')
+    await shutdown()
   })
   
   process.on('SIGTERM', async () => {
     logger.info('Received SIGTERM, shutting down gracefully')
-    await server.stop()
-    process.exit(0)
+    await shutdown()
   })
+  
+  // The stdio transport will handle stdin lifecycle
+  // We don't need to manually handle stdin close as the transport manages it
   
   // Start the server
   try {
     await server.start()
+    // The server is now running and will handle messages
+    // The process will stay alive due to the open stdin stream
   } catch (error) {
     logger.error('Failed to start server:', error)
     process.exit(1)
