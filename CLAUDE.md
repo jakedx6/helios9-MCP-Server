@@ -141,4 +141,4 @@ Or use MCP Inspector for interactive testing.
 - Workflow automation
 
 ## App Links
-- Main SaaS app is at https://www.helios9.app
+- Main SaaS app is at https://helios9.app (Note: use without www for API calls)

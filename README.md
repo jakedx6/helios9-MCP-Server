@@ -146,7 +146,7 @@ Add to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["-y", "helios9-mcp-server@latest"],
       "env": {
-        "HELIOS_API_URL": "https://www.helios9.app",
+        "HELIOS_API_URL": "https://helios9.app",
         "HELIOS_API_KEY": "your_generated_api_key"
       }
     }
@@ -162,7 +162,7 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/helios9-MCP-Server/dist/index.js"],
       "env": {
-        "HELIOS_API_URL": "https://www.helios9.app",
+        "HELIOS_API_URL": "https://helios9.app",
         "HELIOS_API_KEY": "your_generated_api_key"
       }
     }

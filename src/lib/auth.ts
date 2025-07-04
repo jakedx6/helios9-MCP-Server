@@ -85,6 +85,23 @@ export class AuthManager {
   isAuthenticated(): boolean {
     return this.authContext?.authenticated ?? false
   }
+  
+  /**
+   * Ensure authenticated before API calls
+   */
+  async ensureAuthenticated(): Promise<AuthContext> {
+    if (this.isAuthenticated()) {
+      return this.authContext!
+    }
+    
+    // Try to authenticate with API key if available
+    const apiKey = process.env.HELIOS_API_KEY
+    if (!apiKey) {
+      throw new UnauthorizedError('HELIOS_API_KEY environment variable is required')
+    }
+    
+    return await this.authenticate('api_key', apiKey)
+  }
 
   /**
    * Clear authentication

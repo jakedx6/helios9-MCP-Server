@@ -21,8 +21,17 @@ import { contextAggregationTools, contextAggregationHandlers } from './tools/con
 import { workflowAutomationTools, workflowAutomationHandlers } from './tools/workflow-automation.js'
 import { intelligentSearchTools, intelligentSearchHandlers } from './tools/intelligent-search.js'
 import { analyticsInsightsTools, analyticsInsightsHandlers } from './tools/analytics-insights.js'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'))
+
 // Constants
-const HELIOS_VERSION = '1.0.0'
+const HELIOS_VERSION = packageJson.version
 const MCP_PROTOCOL_VERSION = '2024-11-05'
 
 // Load environment variables (only if .env file exists)
@@ -163,6 +172,8 @@ class HeliosMCPServer {
       logger.info('Tool call received', { tool: name, args: Object.keys(args || {}) })
 
       try {
+        // Ensure authenticated before any API calls
+        await authManager.ensureAuthenticated()
         // Check if tool exists
         if (!this.allHandlers[name]) {
           throw new Error(`Unknown tool: ${name}`)
@@ -242,6 +253,8 @@ class HeliosMCPServer {
       logger.info('Resource read requested', { uri })
 
       try {
+        // Ensure authenticated before any API calls
+        await authManager.ensureAuthenticated()
         const content = await this.handleResourceRead(uri)
         
         return {
@@ -501,27 +514,31 @@ Please provide detailed feedback with specific examples and actionable recommend
   }
 
   public async start() {
-    // Setup authentication with API key (required for API mode)
+    // Check for API key but don't authenticate yet
     const apiKey = process.env.HELIOS_API_KEY
     
     if (!apiKey) {
       logger.error('HELIOS_API_KEY environment variable is required')
-      process.exit(1)
+      // Start server anyway to provide better error messages to MCP clients
     }
 
-    try {
-      await authManager.authenticate('api_key', apiKey)
-      logger.info('Authenticated with Helios-9 API')
-    } catch (error) {
-      logger.error('API authentication failed:', error)
-      process.exit(1)
-    }
-
-    // Start the server
+    // Start the server first (before authentication)
     const transport = new StdioServerTransport()
     await this.server.connect(transport)
     
     logger.info('Helios-9 MCP Server started and ready for connections')
+    
+    // Try to authenticate in the background (non-blocking)
+    if (apiKey) {
+      authManager.authenticate('api_key', apiKey)
+        .then(() => {
+          logger.info('Authenticated with Helios-9 API')
+        })
+        .catch((error) => {
+          logger.error('API authentication failed:', error)
+          logger.error('The server is running but API calls will fail until authentication is fixed')
+        })
+    }
   }
 
   public async stop() {

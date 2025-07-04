@@ -12,7 +12,12 @@
       "Bash(ls:*)",
       "Bash(HELIOS_API_URL=https://www.helios9.app node dist/index.js --api-key test_key)",
       "Bash(npm publish:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npx:*)",
+      "Bash(chmod:*)",
+      "Bash(HELIOS_API_URL=https://www.helios9.app node dist/index.js --api-key hel9_9c39cad6dbb017465450e2fe674a8a78e6fda039205fb1ac80e5576c06410c10)",
+      "Bash(true)",
+      "Bash(HELIOS_API_URL=https://helios9.app npx -y helios9-mcp-server@latest --api-key hel9_71ed9903d8b48dbfe7c12143c848ec9b23da10d4ffff8b9d1e4ad2dcb1f2ee83)"
     ],
     "deny": []
   },
