@@ -1,0 +1,80 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      npm-tag:
+        description: 'NPM tag (e.g., latest, beta, alpha, next)'
+        required: false
+        default: 'latest'
+      skip-github-release:
+        description: 'Skip GitHub release creation'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org/'
+      
+      - name: Get package version
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - run: npm install
+      
+      - run: npm run build
+      
+      - run: npm test --if-present
+      
+      - name: Publish to npm
+        run: npm publish --tag ${{ github.event.inputs.npm-tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create GitHub Release
+        if: github.event.inputs.skip-github-release != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.package-version.outputs.version }}
+          name: Release v${{ steps.package-version.outputs.version }}
+          body: |
+            ## Manual Release
+            
+            Version ${{ steps.package-version.outputs.version }} published with tag: ${{ github.event.inputs.npm-tag }}
+            
+            ### Installation
+            ```bash
+            # Install with tag
+            npx -y helios9-mcp-server@${{ github.event.inputs.npm-tag }} --api-key YOUR_KEY
+            
+            # Install specific version
+            npx -y helios9-mcp-server@${{ steps.package-version.outputs.version }} --api-key YOUR_KEY
+            ```
+            
+            View on npm: https://www.npmjs.com/package/helios9-mcp-server
+          draft: false
+          prerelease: ${{ github.event.inputs.npm-tag != 'latest' }}
+          generate_release_notes: true
+      
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.package-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **NPM Tag**: ${{ github.event.inputs.npm-tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: ${{ github.event.inputs.skip-github-release != 'true' && 'Created' || 'Skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### View Package" >> $GITHUB_STEP_SUMMARY
+          echo "[npm](https://www.npmjs.com/package/helios9-mcp-server/v/${{ steps.package-version.outputs.version }})" >> $GITHUB_STEP_SUMMARY

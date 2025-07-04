@@ -23,9 +23,26 @@ git push origin main --follow-tags
 The auto-release workflow will:
 - ✅ Detect version change in package.json
 - ✅ Build and test the package
-- ✅ Publish to npm
+- ✅ Publish to npm (with correct tag for prereleases)
 - ✅ Create GitHub release
 - ✅ Tag the commit
+
+### Release Examples
+
+**Patch Release (1.0.2 → 1.0.3):**
+1. Actions → Version Bump & Release → Run workflow
+2. Select "patch" → Run
+3. Auto-release publishes to npm as `latest`
+
+**Beta Release (1.0.2 → 1.1.0-beta.0):**
+1. Actions → Version Bump & Release → Run workflow
+2. Select "preminor", keep "beta" → Run
+3. Auto-release publishes to npm as `beta`
+
+**Promote Beta to Stable (1.1.0-beta.2 → 1.1.0):**
+1. Actions → Version Bump & Release → Run workflow
+2. Select "minor" → Run
+3. Auto-release publishes to npm as `latest`
 
 ## 📝 Manual Publishing
 
@@ -120,20 +137,38 @@ The auto-release workflow will:
 
 ## GitHub Workflows Overview
 
-### 1. **Auto Release** (`auto-release.yml`)
-- Triggers on push to main when package.json version changes
-- Automatically publishes to npm and creates GitHub release
-- No manual intervention needed
+### Primary Workflows (Use These!)
 
-### 2. **Version Bump** (`version-bump.yml`)
-- Manual workflow to bump version
-- Creates commit and tag
-- Triggers auto-release workflow
+#### 1. **Version Bump & Release** (`version-bump.yml`)
+- **Purpose**: Bump version and trigger automatic release
+- **When to use**: For all regular releases
+- **Options**:
+  - Version types: patch, minor, major, prepatch, preminor, premajor, prerelease
+  - Prerelease identifier: beta (default), alpha, rc, etc.
+- **What it does**:
+  1. Bumps version in package.json
+  2. Commits and pushes change
+  3. Triggers auto-release workflow
 
-### 3. **Publish to npm** (`npm-publish.yml`)
-- Triggered by GitHub releases
-- Manual backup option
+#### 2. **Auto Release** (`auto-release.yml`)
+- **Purpose**: Automatically publish when version changes
+- **Triggers**: On push to main when package.json changes
+- **What it does**:
+  1. Detects version change
+  2. Builds and tests
+  3. Publishes to npm (with correct tag for prereleases)
+  4. Creates GitHub release
+  5. Tags the commit
 
-### 4. **Publish to npm (Simple)** (`npm-publish-simple.yml`)
-- Simplified manual publish workflow
-- Good for testing
+### Backup Workflow
+
+#### 3. **Manual Release** (`manual-release.yml`)
+- **Purpose**: Manual control over publishing
+- **When to use**: Special cases, re-publishing, custom tags
+- **Options**:
+  - NPM tag: latest, beta, alpha, next, etc.
+  - Skip GitHub release: For re-publishing only
+- **Use cases**:
+  - Publishing with custom npm tags
+  - Re-publishing failed releases
+  - Testing publication process

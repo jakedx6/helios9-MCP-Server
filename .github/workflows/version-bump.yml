@@ -1,4 +1,4 @@
-name: Version Bump
+name: Version Bump & Release
 
 on:
   workflow_dispatch:
@@ -12,7 +12,14 @@ on:
           - patch
           - minor
           - major
+          - prepatch
+          - preminor
+          - premajor
           - prerelease
+      prerelease-id:
+        description: 'Prerelease identifier (e.g., beta, alpha)'
+        required: false
+        default: 'beta'
 
 jobs:
   bump-version:
@@ -33,7 +40,12 @@ jobs:
       
       - name: Bump version
         run: |
-          npm version ${{ github.event.inputs.version-type }} -m "chore: bump version to %s"
+          # Handle prerelease versions with identifier
+          if [[ "${{ github.event.inputs.version-type }}" == pre* ]]; then
+            npm version ${{ github.event.inputs.version-type }} --preid=${{ github.event.inputs.prerelease-id }} -m "chore: bump version to %s"
+          else
+            npm version ${{ github.event.inputs.version-type }} -m "chore: bump version to %s"
+          fi
       
       - name: Push changes
         run: |

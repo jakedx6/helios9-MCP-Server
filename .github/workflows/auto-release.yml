@@ -63,7 +63,16 @@ jobs:
       - run: npm test --if-present
       
       - name: Publish to npm
-        run: npm publish
+        run: |
+          # Check if this is a prerelease version
+          VERSION=${{ needs.check-version.outputs.new-version }}
+          if [[ "$VERSION" == *"-"* ]]; then
+            echo "Publishing prerelease version $VERSION"
+            npm publish --tag beta
+          else
+            echo "Publishing stable version $VERSION"
+            npm publish
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
@@ -91,12 +100,16 @@ jobs:
             
             ### Installation
             ```bash
+            # For stable release
             npx -y helios9-mcp-server@latest --api-key YOUR_KEY
+            
+            # For this specific version
+            npx -y helios9-mcp-server@${{ needs.check-version.outputs.new-version }} --api-key YOUR_KEY
             ```
             
             View on npm: https://www.npmjs.com/package/helios9-mcp-server
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(needs.check-version.outputs.new-version, '-') }}
           generate_release_notes: true
       
       - name: Notify Success
