@@ -27,9 +27,10 @@ export const logger = winston.createLogger({
   format: logFormat,
   defaultMeta: { service: 'helios9-mcp-server' },
   transports: [
-    // Console transport for development
+    // Console transport - MUST use stderr for MCP compatibility
     new winston.transports.Console({
-      format: process.env.NODE_ENV === 'production' ? logFormat : consoleFormat
+      format: process.env.NODE_ENV === 'production' ? logFormat : consoleFormat,
+      stderrLevels: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']
     })
   ]
 })
@@ -48,9 +49,12 @@ if (process.env.NODE_ENV === 'production') {
   }))
 }
 
-// Log unhandled exceptions and rejections
+// Log unhandled exceptions and rejections (to stderr)
 logger.exceptions.handle(
-  new winston.transports.Console({ format: consoleFormat })
+  new winston.transports.Console({ 
+    format: consoleFormat,
+    stderrLevels: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']
+  })
 )
 
 process.on('unhandledRejection', (reason, promise) => {

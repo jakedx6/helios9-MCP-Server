@@ -25,6 +25,8 @@
     "github",
     "context7",
     "serena",
-    "supabase-mcp-server"
-  ]
+    "supabase-mcp-server",
+    "helios9"
+  ],
+  "enableAllProjectMcpServers": true
 }
