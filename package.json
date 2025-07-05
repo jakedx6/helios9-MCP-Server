@@ -1,6 +1,6 @@
 {
   "name": "helios9-mcp-server",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Helios-9 MCP (Model Context Protocol) Server",
   "type": "module",
   "main": "dist/index.js",
@@ -15,7 +15,7 @@
     "node": ">=16.0.0"
   },
   "bin": {
-    "helios9-mcp": "dist/index.js"
+    "helios9-mcp-server": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",

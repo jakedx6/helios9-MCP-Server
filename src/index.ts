@@ -584,11 +584,10 @@ async function main() {
 }
 
 // Run if this is the main module
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    logger.error('Unhandled error in main:', error)
-    process.exit(1)
-  })
-}
+// Always run main when executed directly (handles symlinks, npx, etc.)
+main().catch((error) => {
+  logger.error('Unhandled error in main:', error)
+  process.exit(1)
+})
 
 export { HeliosMCPServer }
