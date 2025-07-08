@@ -107,6 +107,7 @@ export interface Database {
           priority: 'low' | 'medium' | 'high'
           due_date: string | null
           assignee_id: string | null
+          initiative_id: string | null
           created_at: string
           updated_at: string
           created_by: string
@@ -121,6 +122,7 @@ export interface Database {
           priority?: 'low' | 'medium' | 'high'
           due_date?: string | null
           assignee_id?: string | null
+          initiative_id?: string | null
           created_at?: string
           updated_at?: string
           created_by: string
@@ -135,6 +137,7 @@ export interface Database {
           priority?: 'low' | 'medium' | 'high'
           due_date?: string | null
           assignee_id?: string | null
+          initiative_id?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string
@@ -202,6 +205,120 @@ export interface Database {
           messages?: Json
           created_at?: string
           updated_at?: string
+        }
+      }
+      initiatives: {
+        Row: {
+          id: string
+          name: string
+          objective: string
+          description: string | null
+          status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+          priority: 'critical' | 'high' | 'medium' | 'low'
+          project_ids: string[]
+          owner_id: string
+          start_date: string | null
+          target_date: string | null
+          created_at: string
+          updated_at: string
+          created_by: string
+          tenant_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          objective: string
+          description?: string | null
+          status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+          priority?: 'critical' | 'high' | 'medium' | 'low'
+          project_ids: string[]
+          owner_id: string
+          start_date?: string | null
+          target_date?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by: string
+          tenant_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          objective?: string
+          description?: string | null
+          status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+          priority?: 'critical' | 'high' | 'medium' | 'low'
+          project_ids?: string[]
+          owner_id?: string
+          start_date?: string | null
+          target_date?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string
+          tenant_id?: string
+        }
+      }
+      initiative_milestones: {
+        Row: {
+          id: string
+          initiative_id: string
+          name: string
+          description: string | null
+          target_date: string
+          completed_date: string | null
+          status: 'pending' | 'in_progress' | 'completed' | 'missed'
+          order_index: number
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          initiative_id: string
+          name: string
+          description?: string | null
+          target_date: string
+          completed_date?: string | null
+          status?: 'pending' | 'in_progress' | 'completed' | 'missed'
+          order_index?: number
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          initiative_id?: string
+          name?: string
+          description?: string | null
+          target_date?: string
+          completed_date?: string | null
+          status?: 'pending' | 'in_progress' | 'completed' | 'missed'
+          order_index?: number
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      initiative_documents: {
+        Row: {
+          id: string
+          initiative_id: string
+          document_id: string
+          added_by: string
+          added_at: string
+        }
+        Insert: {
+          id?: string
+          initiative_id: string
+          document_id: string
+          added_by: string
+          added_at?: string
+        }
+        Update: {
+          id?: string
+          initiative_id?: string
+          document_id?: string
+          added_by?: string
+          added_at?: string
         }
       }
     }

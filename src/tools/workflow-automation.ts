@@ -420,6 +420,7 @@ async function executeAction(action: any, testData: any, dryRun: boolean): Promi
         title: action.parameters.title,
         description: action.parameters.description,
         project_id: action.parameters.project_id || testData?.project_id,
+        initiative_id: null,
         priority: action.parameters.priority || 'medium',
         assignee_id: action.parameters.assignee_id,
         status: 'todo',

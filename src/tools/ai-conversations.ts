@@ -384,6 +384,7 @@ export const extractActionItems = requireAuth(async (args: any) => {
       try {
         const task = await supabaseService.createTask({
           project_id: conversation.project_id,
+          initiative_id: null,
           title: item.title,
           description: `${item.description}\n\nExtracted from conversation: ${conversation.title}\n\n[Source: AI Conversation ${conversation.id}, Confidence: ${item.confidence}]`,
           priority: item.priority || 'medium',

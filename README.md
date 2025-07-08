@@ -6,7 +6,7 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 
 **Version**: 1.0.0  
 **Stability**: Ready for Core Features  
-**Active Tools**: 12 (Projects, Tasks, Documents CRUD operations)  
+**Active Tools**: 21 (Projects, Initiatives, Tasks, Documents - full hierarchy support)  
 **API Integration**: ✅ Fully integrated with Helios-9 SaaS API
 
 ## 🌟 Features
@@ -19,9 +19,9 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 - **Real-time Context**: Live project statistics and activity feeds
 
 ### MCP Protocol Support
-- **Tools**: 12 core tools for project, task, and document operations
-- **Resources**: Dynamic project and document resources (coming soon)
-- **Prompts**: AI-optimized prompt templates (coming soon)
+- **Tools**: 21 tools for projects, initiatives, tasks, and documents
+- **Resources**: Dynamic project and document resources
+- **Prompts**: 9 AI-optimized prompt templates for project workflows
 
 ### AI-First Design
 - **Frontmatter Support**: YAML metadata for AI instructions
@@ -125,12 +125,33 @@ Your API key controls access to:
 - Advanced analytics and insights
 - Document collaboration features
 
-## 🔗 Resources & Prompts (Coming Soon)
+## 🔗 Resources & Prompts
 
-MCP Resources and Prompts are planned features that will enable:
-- Dynamic resource URIs for direct content access
-- AI-optimized prompt templates for common workflows
-- Context-aware project planning assistance
+### Available Resources (24 total)
+**Projects**: `/projects`, `/project/{id}/context`, `/project/{id}/health`, `/project/{id}/timeline`  
+**Initiatives**: `/initiatives`, `/initiatives?project_id={id}`, `/initiative/{id}`, `/initiative/{id}/context`  
+**Tasks**: `/tasks`, `/tasks?project_id={id}`, `/tasks?initiative_id={id}`, `/task/{id}`  
+**Documents**: `/documents`, `/documents?project_id={id}`, `/document/{id}`  
+**Workspace**: `/workspace/overview`, `/workspace/analytics`  
+**Search**: `/search?q={query}`, `/search/semantic?q={query}`  
+**Conversations**: `/conversations?project_id={id}`, `/conversation/{id}`  
+**Workflows**: `/workflows`, `/workflow/{id}`
+
+### Available Prompts
+**Planning & Strategy**:
+- `project_planning` - Generate full project plans with initiatives
+- `initiative_strategy` - Strategic planning for initiatives
+- `task_breakdown` - Break features into actionable tasks
+- `sprint_planning` - Plan sprints with current context
+
+**Analysis & Review**:
+- `project_health_check` - Analyze project health
+- `document_review` - Review and improve documentation
+- `daily_standup` - Generate standup reports
+- `project_kickoff` - Initial project structuring
+
+**Special Features**:
+- `helios9_personality` - HELIOS-9's sardonic AI insights
 
 ## 🔧 Integration Examples
 

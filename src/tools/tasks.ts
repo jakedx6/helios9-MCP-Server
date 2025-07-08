@@ -12,6 +12,7 @@ import { z } from 'zod'
 // Input schemas for task tools
 const ListTasksSchema = z.object({
   project_id: z.string().uuid().optional(),
+  initiative_id: z.string().uuid().optional(),
   status: z.enum(['todo', 'in_progress', 'done']).optional(),
   assignee_id: z.string().uuid().optional(),
   search: z.string().optional(),
@@ -24,6 +25,7 @@ const GetTaskSchema = z.object({
 
 const CreateTaskSchema = z.object({
   project_id: z.string().uuid(),
+  initiative_id: z.string().uuid().optional(),
   title: z.string().min(1).max(500),
   description: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
@@ -39,7 +41,8 @@ const UpdateTaskSchema = z.object({
   status: z.enum(['todo', 'in_progress', 'done']).optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   due_date: z.string().datetime().optional(),
-  assignee_id: z.string().uuid().optional()
+  assignee_id: z.string().uuid().optional(),
+  initiative_id: z.string().uuid().optional()
   // Removed metadata as it doesn't exist in the database schema
 })
 
@@ -52,7 +55,7 @@ const GetTaskContextSchema = z.object({
  */
 export const listTasksTool: MCPTool = {
   name: 'list_tasks',
-  description: 'List tasks with optional filtering by project, status, or assignee',
+  description: 'List tasks with optional filtering by project, initiative, status, or assignee',
   inputSchema: {
     type: 'object',
     properties: {
@@ -60,6 +63,11 @@ export const listTasksTool: MCPTool = {
         type: 'string',
         format: 'uuid',
         description: 'Filter tasks by project ID'
+      },
+      initiative_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'Filter tasks by initiative ID'
       },
       status: {
         type: 'string',
@@ -87,20 +95,25 @@ export const listTasksTool: MCPTool = {
 }
 
 export const listTasks = requireAuth(async (args: any) => {
-  const { project_id, status, assignee_id, search, limit } = ListTasksSchema.parse(args)
+  const { project_id, initiative_id, status, assignee_id, search, limit } = ListTasksSchema.parse(args)
   
-  logger.info('Listing tasks', { project_id, status, assignee_id, search, limit })
+  logger.info('Listing tasks', { project_id, initiative_id, status, assignee_id, search, limit })
   
-  const tasks = await supabaseService.getTasks(
+  let tasks = await supabaseService.getTasks(
     { project_id, status, assignee_id, search },
     { limit },
     { field: 'updated_at', order: 'desc' }
   )
   
+  // Filter by initiative_id if provided (since API doesn't support it directly yet)
+  if (initiative_id) {
+    tasks = tasks.filter(task => task.initiative_id === initiative_id)
+  }
+  
   return {
     tasks,
     total: tasks.length,
-    filters_applied: { project_id, status, assignee_id, search }
+    filters_applied: { project_id, initiative_id, status, assignee_id, search }
   }
 })
 
@@ -117,6 +130,11 @@ export const createTaskTool: MCPTool = {
         type: 'string',
         format: 'uuid',
         description: 'The project ID where the task will be created'
+      },
+      initiative_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'Optional initiative ID to associate the task with'
       },
       title: {
         type: 'string',
@@ -155,11 +173,13 @@ export const createTask = requireAuth(async (args: any) => {
   
   logger.info('Creating new task', { 
     project_id: taskData.project_id, 
+    initiative_id: taskData.initiative_id,
     title: taskData.title 
   })
   
   const task = await supabaseService.createTask({
     project_id: taskData.project_id,
+    initiative_id: taskData.initiative_id || null,
     title: taskData.title,
     description: taskData.description || null,
     priority: taskData.priority,
@@ -220,6 +240,11 @@ export const updateTaskTool: MCPTool = {
         type: 'string',
         format: 'uuid',
         description: 'New assignee for the task'
+      },
+      initiative_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'New initiative ID to associate the task with'
       },
       // Removed metadata as it doesn't exist in the database schema
     },
@@ -667,6 +692,7 @@ export const createTaskWorkflow = requireAuth(async (args: any) => {
       title: taskData.title,
       description: taskData.description || null,
       project_id,
+      initiative_id: null,
       status: 'todo',
       priority: taskData.priority,
       assignee_id: taskData.assignee_id || null,

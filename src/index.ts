@@ -21,6 +21,8 @@ import { contextAggregationTools, contextAggregationHandlers } from './tools/con
 import { workflowAutomationTools, workflowAutomationHandlers } from './tools/workflow-automation.js'
 import { intelligentSearchTools, intelligentSearchHandlers } from './tools/intelligent-search.js'
 import { analyticsInsightsTools, analyticsInsightsHandlers } from './tools/analytics-insights.js'
+import { initiativeTools, initiativeHandlers } from './tools/initiatives.js'
+import { helios9Prompts, promptHandlers } from './prompts/helios9-prompts.js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -131,6 +133,7 @@ class HeliosMCPServer {
       ...Object.values(workflowAutomationTools),
       ...Object.values(intelligentSearchTools),
       ...Object.values(analyticsInsightsTools),
+      ...Object.values(initiativeTools),
     ]
 
     this.allHandlers = {
@@ -142,6 +145,7 @@ class HeliosMCPServer {
       ...workflowAutomationHandlers,
       ...intelligentSearchHandlers,
       ...analyticsInsightsHandlers,
+      ...initiativeHandlers,
     }
 
     this.setupHandlers()
@@ -218,6 +222,7 @@ class HeliosMCPServer {
       
       return {
         resources: [
+          // Project Resources
           {
             uri: 'helios9://projects',
             name: 'All Projects',
@@ -231,9 +236,81 @@ class HeliosMCPServer {
             mimeType: 'application/json',
           },
           {
+            uri: 'helios9://project/{project_id}/health',
+            name: 'Project Health',
+            description: 'Project health analysis and recommendations',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://project/{project_id}/timeline',
+            name: 'Project Timeline',
+            description: 'Project timeline with milestones and events',
+            mimeType: 'application/json',
+          },
+          
+          // Initiative Resources
+          {
+            uri: 'helios9://initiatives',
+            name: 'All Initiatives',
+            description: 'List of all initiatives across projects',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://initiatives?project_id={project_id}',
+            name: 'Project Initiatives',
+            description: 'List initiatives for a specific project',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://initiative/{initiative_id}',
+            name: 'Initiative Details',
+            description: 'Detailed information about a specific initiative',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://initiative/{initiative_id}/context',
+            name: 'Initiative Context',
+            description: 'Comprehensive initiative context with insights',
+            mimeType: 'application/json',
+          },
+          
+          // Task Resources
+          {
+            uri: 'helios9://tasks',
+            name: 'All Tasks',
+            description: 'List of all tasks across projects',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://tasks?project_id={project_id}',
+            name: 'Project Tasks',
+            description: 'List tasks for a specific project',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://tasks?initiative_id={initiative_id}',
+            name: 'Initiative Tasks',
+            description: 'List tasks for a specific initiative',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://task/{task_id}',
+            name: 'Task Details',
+            description: 'Detailed information about a specific task',
+            mimeType: 'application/json',
+          },
+          
+          // Document Resources
+          {
             uri: 'helios9://documents',
             name: 'All Documents',
             description: 'List of all user documents',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://documents?project_id={project_id}',
+            name: 'Project Documents',
+            description: 'List documents for a specific project',
             mimeType: 'application/json',
           },
           {
@@ -241,6 +318,62 @@ class HeliosMCPServer {
             name: 'Document Content',
             description: 'Full document content with metadata',
             mimeType: 'text/markdown',
+          },
+          
+          // Workspace Resources
+          {
+            uri: 'helios9://workspace/overview',
+            name: 'Workspace Overview',
+            description: 'Comprehensive workspace overview with analytics',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://workspace/analytics',
+            name: 'Workspace Analytics',
+            description: 'Detailed workspace analytics and insights',
+            mimeType: 'application/json',
+          },
+          
+          // Search Resources
+          {
+            uri: 'helios9://search?q={query}',
+            name: 'Universal Search',
+            description: 'Search across all projects, tasks, and documents',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://search/semantic?q={query}',
+            name: 'Semantic Search',
+            description: 'AI-powered semantic search across content',
+            mimeType: 'application/json',
+          },
+          
+          // Conversation Resources
+          {
+            uri: 'helios9://conversations?project_id={project_id}',
+            name: 'Project Conversations',
+            description: 'List AI conversations for a project',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://conversation/{conversation_id}',
+            name: 'Conversation Details',
+            description: 'Specific conversation with analysis',
+            mimeType: 'application/json',
+          },
+          
+          // Workflow Resources
+          {
+            uri: 'helios9://workflows',
+            name: 'Workflow Rules',
+            description: 'List all workflow automation rules',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'helios9://workflow/{workflow_id}',
+            name: 'Workflow Details',
+            description: 'Specific workflow rule configuration',
+            mimeType: 'application/json',
           },
         ],
       }
@@ -257,11 +390,17 @@ class HeliosMCPServer {
         await authManager.ensureAuthenticated()
         const content = await this.handleResourceRead(uri)
         
+        // Determine mime type based on the URI
+        let mimeType = 'application/json'
+        if (uri.includes('/document/') && !uri.includes('/documents')) {
+          mimeType = 'text/markdown'
+        }
+        
         return {
           contents: [
             {
               uri,
-              mimeType: uri.includes('/document/') ? 'text/markdown' : 'application/json',
+              mimeType,
               text: typeof content === 'string' ? content : JSON.stringify(content, null, 2),
             },
           ],
@@ -279,6 +418,7 @@ class HeliosMCPServer {
       
       return {
         prompts: [
+          // Original prompts
           {
             name: 'project_kickoff',
             description: 'Generate project structure from natural language description',
@@ -332,6 +472,12 @@ class HeliosMCPServer {
               },
             ],
           },
+          // New Helios-9 prompts
+          ...Object.values(helios9Prompts).map(prompt => ({
+            name: prompt.name,
+            description: prompt.description,
+            arguments: prompt.arguments || []
+          }))
         ],
       }
     })
@@ -366,30 +512,172 @@ class HeliosMCPServer {
   }
 
   private async handleResourceRead(uri: string): Promise<any> {
-    // Parse URI and route to appropriate handler
-    if (uri === 'helios9://projects') {
+    // Parse URI and extract query parameters
+    const url = new URL(uri.replace('helios9://', 'http://helios9/'))
+    const path = url.pathname
+    const params: Record<string, string> = {}
+    url.searchParams.forEach((value, key) => {
+      params[key] = value
+    })
+
+    // Project Resources
+    if (path === '/projects') {
       return await this.allHandlers.list_projects({})
     }
     
-    if (uri === 'helios9://documents') {
-      return await this.allHandlers.list_documents({})
-    }
-    
-    const projectContextMatch = uri.match(/^helios9:\/\/project\/([^\/]+)\/context$/)
+    const projectContextMatch = path.match(/^\/project\/([^\/]+)\/context$/)
     if (projectContextMatch) {
       return await this.allHandlers.get_project_context({ project_id: projectContextMatch[1] })
     }
     
+    const projectHealthMatch = path.match(/^\/project\/([^\/]+)\/health$/)
+    if (projectHealthMatch) {
+      return await this.allHandlers.get_project_insights({ 
+        project_id: projectHealthMatch[1],
+        insight_types: ['progress', 'bottlenecks', 'team_performance', 'documentation_health'],
+        include_recommendations: true
+      })
+    }
     
-    const documentMatch = uri.match(/^helios9:\/\/document\/([^\/]+)$/)
+    const projectTimelineMatch = path.match(/^\/project\/([^\/]+)\/timeline$/)
+    if (projectTimelineMatch) {
+      return await this.allHandlers.get_project_timeline({ 
+        project_id: projectTimelineMatch[1],
+        include_completed: true,
+        time_range: 'all'
+      })
+    }
+    
+    // Initiative Resources
+    if (path === '/initiatives') {
+      return await this.allHandlers.list_initiatives(params.project_id ? { project_id: params.project_id } : {})
+    }
+    
+    const initiativeMatch = path.match(/^\/initiative\/([^\/]+)$/)
+    if (initiativeMatch) {
+      return await this.allHandlers.get_initiative({ initiative_id: initiativeMatch[1] })
+    }
+    
+    const initiativeContextMatch = path.match(/^\/initiative\/([^\/]+)\/context$/)
+    if (initiativeContextMatch) {
+      return await this.allHandlers.get_initiative_context({ initiative_id: initiativeContextMatch[1] })
+    }
+    
+    // Task Resources
+    if (path === '/tasks') {
+      const filters: any = {}
+      if (params.project_id) filters.project_id = params.project_id
+      if (params.initiative_id) filters.initiative_id = params.initiative_id
+      return await this.allHandlers.list_tasks(filters)
+    }
+    
+    const taskMatch = path.match(/^\/task\/([^\/]+)$/)
+    if (taskMatch) {
+      return await this.allHandlers.get_task({ task_id: taskMatch[1] })
+    }
+    
+    // Document Resources
+    if (path === '/documents') {
+      return await this.allHandlers.list_documents(params.project_id ? { project_id: params.project_id } : {})
+    }
+    
+    const documentMatch = path.match(/^\/document\/([^\/]+)$/)
     if (documentMatch) {
-      return await this.allHandlers.get_document_context({ document_id: documentMatch[1] })
+      const doc = await this.allHandlers.get_document_context({ document_id: documentMatch[1] })
+      // Return markdown content for document resources
+      return doc.document.content
+    }
+    
+    // Workspace Resources
+    if (path === '/workspace/overview') {
+      return await this.allHandlers.get_workspace_overview({
+        include_analytics: true,
+        time_range: 'week'
+      })
+    }
+    
+    if (path === '/workspace/analytics') {
+      return await this.allHandlers.get_project_analytics({
+        time_range: 'month',
+        include_predictions: true,
+        benchmark_comparison: true
+      })
+    }
+    
+    // Search Resources
+    if (path === '/search' && params.q) {
+      return await this.allHandlers.universal_search({
+        query: params.q,
+        search_types: ['projects', 'tasks', 'documents', 'conversations'],
+        limit: 20
+      })
+    }
+    
+    if (path === '/search/semantic' && params.q) {
+      return await this.allHandlers.semantic_search({
+        query: params.q,
+        context_type: 'general',
+        include_explanations: true,
+        max_results: 10
+      })
+    }
+    
+    // Conversation Resources
+    if (path === '/conversations' && params.project_id) {
+      return await this.allHandlers.get_conversations({
+        project_id: params.project_id,
+        include_messages: false,
+        limit: 20
+      })
+    }
+    
+    const conversationMatch = path.match(/^\/conversation\/([^\/]+)$/)
+    if (conversationMatch) {
+      return await this.allHandlers.analyze_conversation({ conversation_id: conversationMatch[1] })
+    }
+    
+    // Workflow Resources
+    if (path === '/workflows') {
+      return await this.allHandlers.list_workflow_rules({
+        enabled_only: true
+      })
+    }
+    
+    const workflowMatch = path.match(/^\/workflow\/([^\/]+)$/)
+    if (workflowMatch) {
+      // Since we don't have a get_workflow_rule handler, we'll list and filter
+      const rules = await this.allHandlers.list_workflow_rules({})
+      return rules.rules.find((r: any) => r.id === workflowMatch[1]) || { error: 'Workflow not found' }
     }
     
     throw new Error(`Unknown resource URI: ${uri}`)
   }
 
   private async handlePromptRequest(name: string, args: Record<string, any>): Promise<string> {
+    // Check if it's one of the new Helios-9 prompts
+    if (promptHandlers[name]) {
+      // Some prompts need additional context data
+      if (name === 'sprint_planning' || name === 'project_health_check') {
+        const projectId = args.project_id
+        if (!projectId) {
+          throw new Error(`${name} prompt requires project_id`)
+        }
+        
+        // Get project context for these prompts
+        const projectContext = await this.allHandlers.get_project_context({ project_id: projectId })
+        
+        if (name === 'sprint_planning') {
+          return promptHandlers[name](args, projectContext)
+        } else if (name === 'project_health_check') {
+          return promptHandlers[name](args, projectContext)
+        }
+      }
+      
+      // Other prompts don't need additional context
+      return promptHandlers[name](args)
+    }
+    
+    // Original prompts
     switch (name) {
       case 'project_kickoff':
         return this.generateProjectKickoffPrompt(args)

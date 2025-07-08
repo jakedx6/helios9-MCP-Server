@@ -17,16 +17,22 @@
       "Bash(chmod:*)",
       "Bash(HELIOS_API_URL=https://www.helios9.app node dist/index.js --api-key hel9_9c39cad6dbb017465450e2fe674a8a78e6fda039205fb1ac80e5576c06410c10)",
       "Bash(true)",
-      "Bash(HELIOS_API_URL=https://helios9.app npx -y helios9-mcp-server@latest --api-key hel9_71ed9903d8b48dbfe7c12143c848ec9b23da10d4ffff8b9d1e4ad2dcb1f2ee83)"
+      "Bash(HELIOS_API_URL=https://helios9.app npx -y helios9-mcp-server@latest --api-key hel9_71ed9903d8b48dbfe7c12143c848ec9b23da10d4ffff8b9d1e4ad2dcb1f2ee83)",
+      "mcp__helios9__list_projects",
+      "mcp__helios9__get_workspace_overview",
+      "mcp__helios9__create_task",
+      "mcp__helios9__create_document",
+      "mcp__helios9__universal_search",
+      "mcp__helios9__get_project_analytics"
     ],
     "deny": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "github",
     "context7",
     "serena",
     "supabase-mcp-server",
     "helios9"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

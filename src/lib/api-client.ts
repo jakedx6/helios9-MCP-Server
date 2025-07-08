@@ -14,6 +14,7 @@ export type Project = {
 export type Task = {
   id: string
   project_id: string
+  initiative_id: string | null
   title: string
   description: string | null
   status: 'todo' | 'in_progress' | 'done'
@@ -56,10 +57,43 @@ export type AIConversation = {
   updated_at: string
 }
 
+export type Initiative = {
+  id: string
+  name: string
+  objective: string
+  description: string | null
+  status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  project_ids: string[]
+  owner_id: string
+  start_date: string | null
+  target_date: string | null
+  created_at: string
+  updated_at: string
+  created_by: string
+  tenant_id: string
+}
+
+export type InitiativeMilestone = {
+  id: string
+  initiative_id: string
+  name: string
+  description: string | null
+  target_date: string
+  completed_date: string | null
+  status: 'pending' | 'in_progress' | 'completed' | 'missed'
+  order_index: number
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 // Type aliases for inserts/updates
 export type ProjectInsert = Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by'>
 export type DocumentInsert = Omit<Document, 'id' | 'created_at' | 'updated_at' | 'created_by'>
+export type InitiativeInsert = Omit<Initiative, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'tenant_id'>
+export type InitiativeMilestoneInsert = Omit<InitiativeMilestone, 'id' | 'created_at' | 'updated_at' | 'created_by'>
 
 // Additional types for complex operations
 export interface ProjectContext {
@@ -409,6 +443,80 @@ export class ApiClient {
    */
   async getProjectContext(projectId: string): Promise<ProjectContext> {
     const response = await this.request<{ context: ProjectContext }>(`/api/mcp/projects/${projectId}/context`)
+    return response.context
+  }
+
+  /**
+   * Initiative operations
+   */
+  async getInitiatives(filter?: Filter & { project_id?: string; status?: string; priority?: string }, pagination?: Pagination, sort?: Sort): Promise<Initiative[]> {
+    const params = new URLSearchParams()
+    
+    if (filter?.project_id) params.append('project_id', filter.project_id)
+    if (filter?.status) params.append('status', filter.status)
+    if (filter?.priority) params.append('priority', filter.priority)
+    if (filter?.search) params.append('search', filter.search)
+    if (pagination?.limit) params.append('limit', pagination.limit.toString())
+    if (pagination?.offset) params.append('offset', pagination.offset.toString())
+    if (sort?.field) params.append('sort_field', sort.field)
+    if (sort?.order) params.append('sort_order', sort.order)
+
+    const queryString = params.toString()
+    const endpoint = `/api/mcp/initiatives${queryString ? `?${queryString}` : ''}`
+    
+    const response = await this.request<{ initiatives: Initiative[] }>(endpoint)
+    return response.initiatives
+  }
+
+  async getInitiative(initiativeId: string): Promise<Initiative> {
+    const response = await this.request<{ initiative: Initiative }>(`/api/mcp/initiatives/${initiativeId}`)
+    return response.initiative
+  }
+
+  async createInitiative(initiativeData: InitiativeInsert): Promise<Initiative> {
+    const response = await this.request<{ initiative: Initiative }>('/api/mcp/initiatives', {
+      method: 'POST',
+      body: JSON.stringify(initiativeData),
+    })
+    
+    logger.info(`Initiative created: ${response.initiative.name} (${response.initiative.id})`)
+    return response.initiative
+  }
+
+  async updateInitiative(initiativeId: string, updates: Partial<Initiative>): Promise<Initiative> {
+    const response = await this.request<{ initiative: Initiative }>(`/api/mcp/initiatives/${initiativeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    })
+    
+    return response.initiative
+  }
+
+  async getInitiativeContext(initiativeId: string): Promise<any> {
+    const response = await this.request<{ context: any }>(`/api/mcp/initiatives/${initiativeId}/context`)
+    return response.context
+  }
+
+  async getInitiativeInsights(initiativeId: string): Promise<any> {
+    const response = await this.request<{ insights: any }>(`/api/mcp/initiatives/${initiativeId}/insights`)
+    return response.insights
+  }
+
+  async searchWorkspace(query: string, filters?: any, limit?: number): Promise<any> {
+    const response = await this.request<any>('/api/mcp/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, filters, limit }),
+    })
+    return response
+  }
+
+  async getEnhancedProjectContext(projectId: string): Promise<any> {
+    const response = await this.request<{ context: any }>(`/api/mcp/projects/${projectId}/context-enhanced`)
+    return response.context
+  }
+
+  async getWorkspaceContext(): Promise<any> {
+    const response = await this.request<{ context: any }>('/api/mcp/workspace/context')
     return response.context
   }
 

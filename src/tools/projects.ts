@@ -439,6 +439,7 @@ export const duplicateProject = requireAuth(async (args: any) => {
         title: task.title,
         description: task.description,
         project_id: newProject.id,
+        initiative_id: null,
         status: 'todo' as const, // Reset all tasks to todo
         priority: task.priority,
         due_date: reset_dates ? null : task.due_date,
