@@ -210,51 +210,63 @@ export interface Database {
       initiatives: {
         Row: {
           id: string
+          tenant_id: string
           name: string
-          objective: string
           description: string | null
+          objective: string
           status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
           priority: 'critical' | 'high' | 'medium' | 'low'
-          project_ids: string[]
-          owner_id: string
           start_date: string | null
           target_date: string | null
+          completed_date: string | null
+          owner_id: string
+          created_by: string
           created_at: string
           updated_at: string
-          created_by: string
-          tenant_id: string
+          metadata: Json | null
+          tags: string[] | null
+          order_index: number
+          parent_initiative_id: string | null
         }
         Insert: {
           id?: string
+          tenant_id: string
           name: string
-          objective: string
           description?: string | null
+          objective: string
           status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
           priority?: 'critical' | 'high' | 'medium' | 'low'
-          project_ids: string[]
-          owner_id: string
           start_date?: string | null
           target_date?: string | null
+          completed_date?: string | null
+          owner_id: string
+          created_by: string
           created_at?: string
           updated_at?: string
-          created_by: string
-          tenant_id: string
+          metadata?: Json | null
+          tags?: string[] | null
+          order_index?: number
+          parent_initiative_id?: string | null
         }
         Update: {
           id?: string
+          tenant_id?: string
           name?: string
-          objective?: string
           description?: string | null
+          objective?: string
           status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
           priority?: 'critical' | 'high' | 'medium' | 'low'
-          project_ids?: string[]
-          owner_id?: string
           start_date?: string | null
           target_date?: string | null
+          completed_date?: string | null
+          owner_id?: string
+          created_by?: string
           created_at?: string
           updated_at?: string
-          created_by?: string
-          tenant_id?: string
+          metadata?: Json | null
+          tags?: string[] | null
+          order_index?: number
+          parent_initiative_id?: string | null
         }
       }
       initiative_milestones: {
@@ -319,6 +331,32 @@ export interface Database {
           document_id?: string
           added_by?: string
           added_at?: string
+        }
+      }
+      initiative_projects: {
+        Row: {
+          id: string
+          initiative_id: string
+          project_id: string
+          added_by: string
+          added_at: string
+          order_index: number
+        }
+        Insert: {
+          id?: string
+          initiative_id: string
+          project_id: string
+          added_by: string
+          added_at?: string
+          order_index?: number
+        }
+        Update: {
+          id?: string
+          initiative_id?: string
+          project_id?: string
+          added_by?: string
+          added_at?: string
+          order_index?: number
         }
       }
     }

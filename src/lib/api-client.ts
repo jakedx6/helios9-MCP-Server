@@ -59,19 +59,28 @@ export type AIConversation = {
 
 export type Initiative = {
   id: string
+  tenant_id: string
   name: string
-  objective: string
   description: string | null
+  objective: string
   status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
   priority: 'critical' | 'high' | 'medium' | 'low'
-  project_ids: string[]
-  owner_id: string
   start_date: string | null
   target_date: string | null
+  completed_date: string | null
+  owner_id: string
+  created_by: string
   created_at: string
   updated_at: string
-  created_by: string
-  tenant_id: string
+  metadata: any
+  tags: string[]
+  order_index: number
+  parent_initiative_id: string | null
+  // Enriched fields from API
+  owner?: Profile
+  task_count?: number
+  milestone_count?: number
+  document_count?: number
 }
 
 export type InitiativeMilestone = {
@@ -92,7 +101,7 @@ export type InitiativeMilestone = {
 export type ProjectInsert = Omit<Project, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'created_by'>
 export type DocumentInsert = Omit<Document, 'id' | 'created_at' | 'updated_at' | 'created_by'>
-export type InitiativeInsert = Omit<Initiative, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'tenant_id'>
+export type InitiativeInsert = Omit<Initiative, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'tenant_id' | 'completed_date' | 'order_index' | 'parent_initiative_id' | 'owner' | 'task_count' | 'milestone_count' | 'document_count'>
 export type InitiativeMilestoneInsert = Omit<InitiativeMilestone, 'id' | 'created_at' | 'updated_at' | 'created_by'>
 
 // Additional types for complex operations

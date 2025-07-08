@@ -29,10 +29,11 @@ const CreateInitiativeSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).default('planning'),
   priority: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
-  project_ids: z.array(z.string().uuid()),
   owner_id: z.string().uuid(),
   start_date: z.string().datetime().optional(),
-  target_date: z.string().datetime().optional()
+  target_date: z.string().datetime().optional(),
+  metadata: z.object({}).optional(),
+  tags: z.array(z.string()).optional()
 })
 
 const UpdateInitiativeSchema = z.object({
@@ -42,10 +43,11 @@ const UpdateInitiativeSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).optional(),
   priority: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-  project_ids: z.array(z.string().uuid()).optional(),
   owner_id: z.string().uuid().optional(),
   start_date: z.string().datetime().optional(),
-  target_date: z.string().datetime().optional()
+  target_date: z.string().datetime().optional(),
+  metadata: z.object({}).optional(),
+  tags: z.array(z.string()).optional()
 })
 
 /**
@@ -98,27 +100,10 @@ export const listInitiatives = requireAuth(async (args: any) => {
     { field: 'updated_at', order: 'desc' }
   )
   
-  // Enrich with counts (would be done server-side in production)
-  const enrichedInitiatives = await Promise.all(initiatives.map(async (initiative) => {
-    // Get counts for tasks, milestones, and documents
-    const tasks = await supabaseService.getTasks({ 
-      project_id: initiative.project_ids[0] // For now, just count from first project
-    })
-    
-    const initiativeTasks = tasks.filter(t => t.initiative_id === initiative.id)
-    
-    return {
-      ...initiative,
-      task_count: initiativeTasks.length,
-      milestone_count: 0, // Placeholder until milestone API is available
-      document_count: 0, // Placeholder until initiative-document association API is available
-      owner: null // Placeholder until profile lookup is available
-    }
-  }))
-  
+  // The API already returns enriched initiatives with counts
   return {
-    initiatives: enrichedInitiatives,
-    total: enrichedInitiatives.length,
+    initiatives: initiatives,
+    total: initiatives.length,
     filters_applied: { project_id, status, priority, search }
   }
 })
@@ -149,24 +134,13 @@ export const getInitiative = requireAuth(async (args: any) => {
   
   const initiative = await supabaseService.getInitiative(initiative_id)
   
-  // Get related data
-  const allTasks = await Promise.all(
-    initiative.project_ids.map(projectId => 
-      supabaseService.getTasks({ project_id: projectId })
-    )
-  )
-  
-  const tasks = allTasks.flat().filter(t => t.initiative_id === initiative_id)
-  const milestones: any[] = [] // Placeholder for milestones
-  const documents: any[] = [] // Placeholder for documents
-  
-  // Calculate statistics
+  // The API already returns enriched initiative data
   const statistics = {
-    total_tasks: tasks.length,
-    completed_tasks: tasks.filter(t => t.status === 'done').length,
-    total_milestones: milestones.length,
-    completed_milestones: milestones.filter(m => m.status === 'completed').length,
-    total_documents: documents.length
+    total_tasks: initiative.task_count || 0,
+    completed_tasks: 0, // Would need to get task details to calculate this
+    total_milestones: initiative.milestone_count || 0,
+    completed_milestones: 0, // Would need milestone details
+    total_documents: initiative.document_count || 0
   }
   
   const completion_percentage = statistics.total_tasks > 0 
@@ -177,11 +151,7 @@ export const getInitiative = requireAuth(async (args: any) => {
     initiative: {
       ...initiative,
       completion_percentage,
-      tasks,
-      milestones,
-      documents,
-      statistics,
-      owner: null // Placeholder for owner details
+      statistics
     }
   }
 })
@@ -222,14 +192,6 @@ export const createInitiativeTool: MCPTool = {
         default: 'medium',
         description: 'Priority level'
       },
-      project_ids: {
-        type: 'array',
-        items: {
-          type: 'string',
-          format: 'uuid'
-        },
-        description: 'Array of associated project IDs'
-      },
       owner_id: {
         type: 'string',
         format: 'uuid',
@@ -244,9 +206,20 @@ export const createInitiativeTool: MCPTool = {
         type: 'string',
         format: 'date-time',
         description: 'Optional target completion date'
+      },
+      metadata: {
+        type: 'object',
+        description: 'Optional metadata'
+      },
+      tags: {
+        type: 'array',
+        items: {
+          type: 'string'
+        },
+        description: 'Optional tags'
       }
     },
-    required: ['name', 'objective', 'project_ids', 'owner_id']
+    required: ['name', 'objective', 'owner_id']
   }
 }
 
@@ -261,10 +234,11 @@ export const createInitiative = requireAuth(async (args: any) => {
     description: initiativeData.description || null,
     status: initiativeData.status,
     priority: initiativeData.priority,
-    project_ids: initiativeData.project_ids,
     owner_id: initiativeData.owner_id,
     start_date: initiativeData.start_date || null,
-    target_date: initiativeData.target_date || null
+    target_date: initiativeData.target_date || null,
+    metadata: initiativeData.metadata || {},
+    tags: initiativeData.tags || []
   })
   
   logger.info('Initiative created successfully', { initiative_id: initiative.id, name: initiative.name })
@@ -314,14 +288,6 @@ export const updateInitiativeTool: MCPTool = {
         enum: ['critical', 'high', 'medium', 'low'],
         description: 'New priority'
       },
-      project_ids: {
-        type: 'array',
-        items: {
-          type: 'string',
-          format: 'uuid'
-        },
-        description: 'New array of project IDs'
-      },
       owner_id: {
         type: 'string',
         format: 'uuid',
@@ -336,6 +302,17 @@ export const updateInitiativeTool: MCPTool = {
         type: 'string',
         format: 'date-time',
         description: 'New target date'
+      },
+      metadata: {
+        type: 'object',
+        description: 'New metadata'
+      },
+      tags: {
+        type: 'array',
+        items: {
+          type: 'string'
+        },
+        description: 'New tags'
       }
     },
     required: ['initiative_id']
