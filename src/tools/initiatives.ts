@@ -134,13 +134,13 @@ export const getInitiative = requireAuth(async (args: any) => {
   
   const initiative = await supabaseService.getInitiative(initiative_id)
   
-  // The API already returns enriched initiative data
+  // If the API returns enriched data with tasks, milestones, and documents, calculate from that
   const statistics = {
-    total_tasks: initiative.task_count || 0,
-    completed_tasks: 0, // Would need to get task details to calculate this
-    total_milestones: initiative.milestone_count || 0,
-    completed_milestones: 0, // Would need milestone details
-    total_documents: initiative.document_count || 0
+    total_tasks: initiative.tasks?.length || initiative.task_count || 0,
+    completed_tasks: initiative.tasks?.filter((t: any) => t.status === 'done').length || 0,
+    total_milestones: initiative.milestones?.length || initiative.milestone_count || 0,
+    completed_milestones: initiative.milestones?.filter((m: any) => m.status === 'completed').length || 0,
+    total_documents: initiative.documents?.length || initiative.document_count || 0
   }
   
   const completion_percentage = statistics.total_tasks > 0 
@@ -507,6 +507,96 @@ export const getWorkspaceContext = requireAuth(async (args: any) => {
   return { context }
 })
 
+/**
+ * Associate document with initiative
+ */
+export const associateDocumentWithInitiativeTool: MCPTool = {
+  name: 'associate_document_with_initiative',
+  description: 'Link an existing document to an initiative',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      initiative_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'The initiative ID to associate the document with'
+      },
+      document_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'The document ID to associate with the initiative'
+      }
+    },
+    required: ['initiative_id', 'document_id']
+  }
+}
+
+export const associateDocumentWithInitiative = requireAuth(async (args: any) => {
+  const { initiative_id, document_id } = z.object({
+    initiative_id: z.string().uuid(),
+    document_id: z.string().uuid()
+  }).parse(args)
+  
+  logger.info('Associating document with initiative', { initiative_id, document_id })
+  
+  // Call the API to create the association
+  const response = await supabaseService.associateDocumentWithInitiative(initiative_id, document_id)
+  
+  logger.info('Document associated with initiative successfully')
+  
+  return {
+    success: true,
+    message: `Document successfully associated with initiative`,
+    initiative_id,
+    document_id
+  }
+})
+
+/**
+ * Disassociate document from initiative
+ */
+export const disassociateDocumentFromInitiativeTool: MCPTool = {
+  name: 'disassociate_document_from_initiative',
+  description: 'Remove the link between a document and an initiative',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      initiative_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'The initiative ID to disassociate the document from'
+      },
+      document_id: {
+        type: 'string',
+        format: 'uuid',
+        description: 'The document ID to disassociate from the initiative'
+      }
+    },
+    required: ['initiative_id', 'document_id']
+  }
+}
+
+export const disassociateDocumentFromInitiative = requireAuth(async (args: any) => {
+  const { initiative_id, document_id } = z.object({
+    initiative_id: z.string().uuid(),
+    document_id: z.string().uuid()
+  }).parse(args)
+  
+  logger.info('Disassociating document from initiative', { initiative_id, document_id })
+  
+  // Call the API to remove the association
+  const response = await supabaseService.disassociateDocumentFromInitiative(initiative_id, document_id)
+  
+  logger.info('Document disassociated from initiative successfully')
+  
+  return {
+    success: true,
+    message: `Document successfully disassociated from initiative`,
+    initiative_id,
+    document_id
+  }
+})
+
 // Export all initiative tools
 export const initiativeTools = {
   listInitiativesTool,
@@ -517,7 +607,9 @@ export const initiativeTools = {
   getInitiativeInsightsTool,
   searchWorkspaceTool,
   getEnhancedProjectContextTool,
-  getWorkspaceContextTool
+  getWorkspaceContextTool,
+  associateDocumentWithInitiativeTool,
+  disassociateDocumentFromInitiativeTool
 }
 
 export const initiativeHandlers = {
@@ -529,5 +621,7 @@ export const initiativeHandlers = {
   get_initiative_insights: getInitiativeInsights,
   search_workspace: searchWorkspace,
   get_enhanced_project_context: getEnhancedProjectContext,
-  get_workspace_context: getWorkspaceContext
+  get_workspace_context: getWorkspaceContext,
+  associate_document_with_initiative: associateDocumentWithInitiative,
+  disassociate_document_from_initiative: disassociateDocumentFromInitiative
 }

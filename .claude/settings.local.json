@@ -26,7 +26,9 @@
       "mcp__helios9__get_project_analytics",
       "mcp__helios9__create_project",
       "mcp__helios9__list_initiatives",
-      "mcp__serena__restart_language_server"
+      "mcp__serena__restart_language_server",
+      "mcp__helios9__list_tasks",
+      "mcp__helios9__get_initiative"
     ],
     "deny": []
   },

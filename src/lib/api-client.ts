@@ -81,6 +81,33 @@ export type Initiative = {
   task_count?: number
   milestone_count?: number
   document_count?: number
+  // Detailed data from get_initiative endpoint
+  tasks?: Array<{
+    id: string
+    title: string
+    status: string
+    assignee: any
+    due_date: string | null
+    priority: string
+    description: string
+  }>
+  milestones?: Array<{
+    id: string
+    name: string
+    status: string
+    description: string
+    order_index: number
+    target_date: string
+    completed_date: string | null
+  }>
+  documents?: Array<{
+    id: string
+    title: string
+    content: string
+    metadata: any
+    created_by: Profile
+    document_type: string
+  }>
 }
 
 export type InitiativeMilestone = {
@@ -521,6 +548,25 @@ export class ApiClient {
   async getInitiativeInsights(initiativeId: string): Promise<any> {
     const response = await this.request<{ insights: any }>(`/api/mcp/initiatives/${initiativeId}/insights`)
     return response.insights
+  }
+
+  async associateDocumentWithInitiative(initiativeId: string, documentId: string): Promise<any> {
+    const response = await this.request<{ success: boolean }>(`/api/mcp/initiatives/${initiativeId}/documents`, {
+      method: 'POST',
+      body: JSON.stringify({ document_id: documentId }),
+    })
+    
+    logger.info(`Document ${documentId} associated with initiative ${initiativeId}`)
+    return response
+  }
+
+  async disassociateDocumentFromInitiative(initiativeId: string, documentId: string): Promise<any> {
+    const response = await this.request<{ success: boolean }>(`/api/mcp/initiatives/${initiativeId}/documents/${documentId}`, {
+      method: 'DELETE',
+    })
+    
+    logger.info(`Document ${documentId} disassociated from initiative ${initiativeId}`)
+    return response
   }
 
   async searchWorkspace(query: string, filters?: any, limit?: number): Promise<any> {
