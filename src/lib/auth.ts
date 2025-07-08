@@ -55,7 +55,33 @@ export class AuthManager {
     // Set the API key in the client
     process.env.HELIOS_API_KEY = apiKey
     
-    // Validate the API key with the main Helios-9 application
+    // For MCP API keys (hel9_*), we skip the auth/validate endpoint
+    // since MCP endpoints handle their own authentication
+    if (apiKey.startsWith('hel9_')) {
+      logger.info('MCP API key detected, using MCP authentication mode')
+      
+      // Create a context that will be populated from API responses
+      this.authContext = {
+        userId: 'mcp-pending', // Will be updated from first API response
+        tenantId: null,
+        profile: {
+          id: 'mcp-pending',
+          email: 'mcp@helios9.app',
+          full_name: 'MCP Service Account',
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          username: 'mcp-service',
+          tenant_id: null
+        } as any,
+        authenticated: true
+      }
+      
+      logger.info('MCP authentication context created')
+      return this.authContext!
+    }
+    
+    // For other API keys, validate normally
     const profile = await apiClient.authenticate()
     
     this.authContext = {

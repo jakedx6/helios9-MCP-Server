@@ -23,7 +23,8 @@
       "mcp__helios9__create_task",
       "mcp__helios9__create_document",
       "mcp__helios9__universal_search",
-      "mcp__helios9__get_project_analytics"
+      "mcp__helios9__get_project_analytics",
+      "mcp__helios9__create_project"
     ],
     "deny": []
   },

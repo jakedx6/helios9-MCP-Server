@@ -4,7 +4,6 @@ An AI-native Model Context Protocol (MCP) server that provides comprehensive pro
 
 ## 📌 Current Status
 
-**Version**: 1.0.0  
 **Stability**: Ready for Core Features  
 **Active Tools**: 21 (Projects, Initiatives, Tasks, Documents - full hierarchy support)  
 **API Integration**: ✅ Fully integrated with Helios-9 SaaS API

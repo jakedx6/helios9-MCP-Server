@@ -193,7 +193,10 @@ export class ApiClient {
     this.apiKey = apiKey
     logger.info('Helios API client initialized', { 
       baseUrl: this.baseUrl,
-      keyPrefix: this.apiKey.substring(0, 8) + '...' // Log partial key for debugging
+      keyPrefix: this.apiKey.substring(0, 16) + '...', // Log partial key for debugging
+      keyLength: this.apiKey.length,
+      envBaseUrl: process.env.HELIOS_API_URL,
+      envKeyLength: process.env.HELIOS_API_KEY?.length
     })
   }
 
@@ -214,9 +217,18 @@ export class ApiClient {
     }
 
     try {
-      logger.debug(`API Request: ${config.method || 'GET'} ${url}`)
+      const headers = config.headers as Record<string, string>
+      logger.info(`API Request: ${config.method || 'GET'} ${url}`, {
+        hasAuth: !!headers?.['Authorization'],
+        authPrefix: headers?.['Authorization']?.substring(0, 20) + '...'
+      })
       
       const response = await fetch(url, config)
+      
+      logger.info(`API Response: ${response.status} ${response.statusText}`, {
+        url,
+        ok: response.ok
+      })
       
       if (!response.ok) {
         const errorText = await response.text()

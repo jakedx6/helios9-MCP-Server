@@ -23,6 +23,7 @@ import { intelligentSearchTools, intelligentSearchHandlers } from './tools/intel
 import { analyticsInsightsTools, analyticsInsightsHandlers } from './tools/analytics-insights.js'
 import { initiativeTools, initiativeHandlers } from './tools/initiatives.js'
 import { helios9Prompts, promptHandlers } from './prompts/helios9-prompts.js'
+import { debugTools, debugHandlers } from './tools/debug.js'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -134,6 +135,7 @@ class HeliosMCPServer {
       ...Object.values(intelligentSearchTools),
       ...Object.values(analyticsInsightsTools),
       ...Object.values(initiativeTools),
+      ...Object.values(debugTools),
     ]
 
     this.allHandlers = {
@@ -146,6 +148,7 @@ class HeliosMCPServer {
       ...intelligentSearchHandlers,
       ...analyticsInsightsHandlers,
       ...initiativeHandlers,
+      ...debugHandlers,
     }
 
     this.setupHandlers()
