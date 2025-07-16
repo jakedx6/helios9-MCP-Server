@@ -28,7 +28,10 @@
       "mcp__helios9__list_initiatives",
       "mcp__serena__restart_language_server",
       "mcp__helios9__list_tasks",
-      "mcp__helios9__get_initiative"
+      "mcp__helios9__get_initiative",
+      "mcp__helios9__associate_document_with_initiative",
+      "mcp__helios9__get_document",
+      "mcp__helios9__debug_environment"
     ],
     "deny": []
   },
@@ -37,7 +40,7 @@
     "github",
     "context7",
     "serena",
-    "supabase-mcp-server",
-    "helios9"
+    "helios9",
+    "supabase-mcp-server"
   ]
 }
